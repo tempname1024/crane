@@ -1,0 +1,69 @@
+{{ template "layout.html" . }}
+{{ define "content" }}
+<p>{{ .Status }}</p>
+<table id='header'>
+  <tr>
+  {{ $categoryCount := len .Papers }}
+  {{ if gt $categoryCount 0 }}
+    <td class='inpt'>
+      <form method='post' action='/admin/edit/'>
+        <input type="text" id="rename-category" name="rename-to" placeholder="Mathematics">
+        <select class="btn" name="rename-category" id="category">
+        {{ range $category, $papers := .Papers }}
+        <option value="{{ $category }}">{{ $category }}</option>
+        {{ end }}
+        </select>
+        <input class='btn' type="submit" value="Rename Category">
+      </form>
+    </td>
+  {{ end }}
+  </tr>
+</table>
+<table class='tabs'>
+  <tr>
+    <td><a class='active' href='/admin/'>Back</a></td>
+  </tr>
+</table>
+<div class='content'>
+{{ if gt $categoryCount 0 }}
+<form method='post' action='/admin/edit/'>
+  <select class="btn" name="action" id="Action">
+    <optgroup label="Action">
+      <option value="delete">Delete</option>
+    </optgroup>
+    <optgroup label="Move To">
+      {{ range $category, $papers := .Papers }}
+      <option value="move-{{ $category }}">{{ $category }}</option>
+      {{ end }}
+    </optgroup>
+  </select>
+  <input class='btn' type="submit" value="Save" />
+<table summary='paper list' class='list nowrap'>
+{{ range $category, $papers := .Papers }}
+  {{ $paperCount := len $papers }}
+  <tr class='nohover-highlight'>
+		<td colspan='4' class='papersection'>
+			<input type="checkbox" id="{{ $category }}" name="category" value="{{ $category }}">
+			<label for="{{ $category }}">{{ $category }}</label>
+		</td>
+	</tr>
+  {{ range $path, $paper := $papers }}
+  <tr>
+    {{ if $paper.Meta.Title }}
+    <td class="sublevel-paper title"><input type="checkbox" id="{{ $path }}" name="paper" value="{{ $path }}"><label for="{{ $path }}"><a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a></label></td>
+    {{ else }}
+    <td class="sublevel-paper title"><input type="checkbox" id="{{ $path }}" name="paper" value="{{ $path }}"><label for="{{ $path }}"><a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a></label></td>
+    {{ end }}
+  </tr>
+  <tr>
+    {{ if $paper.Meta.Title }}
+    <td class="sub">author: {{ $contCount := len $paper.Meta.Contributors }} {{ if gt $contCount 0 }}{{ $author := index $paper.Meta.Contributors 0 }}<a href='/?a={{ $author.LastName }}'>{{ $author.LastName }}{{ if gt $contCount 1 }} et al.{{ end }}{{ end }}</a> yr: <a href="?y={{ $paper.Meta.PubYear }}">{{ $paper.Meta.PubYear }}</a> doi: <a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a> journal: <font color="black">{{ $paper.Meta.Journal }}</font></td>
+    {{ else }}
+    <td></td>
+    {{ end }}
+  </tr>
+  {{ end }}
+{{ end }}
+{{ end }}
+</table></form></div>
+{{ end }}

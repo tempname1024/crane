@@ -1,0 +1,50 @@
+{{ template "layout.html" . }}
+{{ define "content" }}
+{{ if .LastPaperDL }}
+<p>{{ .Status }} (<a style="text-decoration: underline;" href="/download/{{ .LastPaperDL }}">download</a>)</p>
+{{ else }}
+<p>{{ .Status }}</p>
+{{ end }}
+<table id='header'>
+  <tr>
+    <td class='inpt'>
+      <form method='post' action='/admin/add/'>
+      <input type='text' name='new-category' placeholder="Mathematics" value=''/>
+      <input class='btn' type="submit" value="New Category" />
+    </form>
+		</td>
+	</tr>
+  {{ $categoryCount := len .Papers }}
+  {{ if gt $categoryCount 0 }}
+	<tr>
+    <td class='inpt'>
+      <form method='post' action='/admin/add/'>
+        <input type='text' name='dl-paper' placeholder="URL or DOI" value=''/>
+        <select class="btn" name="dl-category" id="category">
+          {{ $lastUsedCategory := .LastUsedCategory }}
+          {{ if $lastUsedCategory }}
+          <option value="{{ .LastUsedCategory }}">{{ $lastUsedCategory }}</option>
+          {{ end }}
+          {{ range $category, $papers := .Papers }}
+          {{ if ne $category $lastUsedCategory }}
+          <option value="{{ $category }}">{{ $category }}</option>
+          {{ end }}
+          {{ end }}
+        </select>
+        <input class='btn' type="submit" value="Download" />
+      </form>
+    </td>
+  </tr>
+  {{ end }}
+</table>
+{{ if gt $categoryCount 0 }}
+<table class='tabs'>
+  <tr>
+    <td><a class='active' href='/admin/edit/'>Edit</a></td>
+  </tr>
+</table>
+<div class='content'>
+{{ block "list" . }}{{ end }}
+</div>
+{{ end }}
+{{ end }}

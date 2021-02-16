@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crane</title>
+<style>
+@media (min-width: 601px) {
+    div#crane {
+        font-size: 16px;
+    }
+}
+@media (max-width: 600px) {
+    div#crane {
+        font-size: 14px;
+    }
+}
+
+div#crane {
+  font-family: monospace;
+  padding: 0em;
+  margin: 0em;
+  background: white;
+  padding: 4px;
+}
+
+div#crane a {
+  color: blue;
+  text-decoration: none;
+}
+
+div#crane table#header input[type="text"] {
+  font-family: inherit;
+  font-size: 100%;
+  display: block;
+  width: calc(100% - 1rem);
+  border: 1px solid #888;
+  border-color: #888;
+  padding: .375rem;
+  background-color: #fff;
+  background-clip: padding-box;
+  margin-bottom: .5em;
+  line-height: 1.5;
+  transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+div#crane table#header .btn {
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+div#crane .btn {
+  font-family: inherit;
+  font-size: 85%;
+  color: black;
+  text-overflow: unset;
+  display: inline;
+  background: #e9ecef;
+  border: #343a40 1px solid;
+	padding: 2px 8px;
+	border-radius: 0;
+}
+
+div#crane a:hover {
+  text-decoration: underline;
+}
+div#crane a {
+  color: #000;
+}
+
+div#crane table {
+  border-collapse: collapse;
+}
+
+div#crane table#header {
+  width: 100%;
+  margin-bottom: 1em;
+}
+
+div#crane table#header td.inpt {
+  padding-left: 10px;
+  white-space: nowrap;
+  border-collapse: collapse;
+  color: #000;
+}
+
+div#crane table#header td.main {
+  font-size: 250%;
+  padding-left: 10px;
+  white-space: nowrap;
+  border-collapse: collapse;
+}
+
+div#crane table#header td.form {
+  text-align: left;
+  vertical-align: bottom;
+  padding-bottom: 2px;
+  white-space: nowrap;
+}
+
+div#crane table#header td.form form,
+div#crane table#header td.form input,
+div#crane table#header td.form select {
+}
+
+div#crane table#header td.sub {
+  color: #777;
+  border-top: solid 1px #ccc;
+  padding-left: 10px;
+}
+
+div#crane table.tabs {
+  border-bottom: solid 2px #ccc;
+  border-collapse: nowrap;
+  margin-top: 1em;
+  margin-bottom: 0px;
+  width: 100%;
+}
+
+div#crane table.tabs td {
+  padding: 0px 0px 0px;
+  vertical-align: bottom;
+}
+
+div#crane table.tabs td a {
+  font-size: 90%;
+  padding: 2px 0.75em;
+  color: black;
+  background-color: #ccc;
+}
+
+div#crane table.tabls td.form {
+  text-align: right;
+}
+
+div#crane table.tabs td.form form {
+  padding-bottom: 2px;
+  white-space: normal;
+  padding-left: 1em;
+}
+
+div#crane table.tabs td.form input,
+div#crane table.tabs td.form select {
+}
+
+div#crane div.content {
+  margin-top: 1em;
+  padding-bottom: 1em;
+  border-bottom: solid 2px #ccc;
+}
+
+div#crane table.list {
+  width: 100%;
+  border: none;
+  border-collapse: collapse;
+}
+
+div#crane table.list tr {
+  background: white;
+}
+
+div#crane table.list:first-child tr:first-child td:first-child {
+  padding-top: 0em;
+}
+
+div#crane table.list td.sub {
+  padding-left: 4em;
+  font-size: 80%;
+}
+
+div#crane table.list th {
+  font-weight: bold;
+  /* color: #888;
+  border-top: dashed 1px #888;
+  border-bottom: dashed 1px #888;
+  */
+  padding: 0.1em 0.5em 0.05em 0.5em;
+  vertical-align: baseline;
+}
+
+div#crane table.list td {
+  border: none;
+  padding: 0.1em 0.5em 0.1em 0.5em;
+}
+
+div#crane table.list td.title {
+  text-decoration: underline;
+  padding-left: 1.5em;
+}
+
+div#crane table.list td.authors {
+  max-width: 10em;
+}
+
+div#crane table.list td.year {
+  max-width: 5em;
+}
+
+div#crane table.list td.doi {
+  max-width: 5em;
+}
+
+div#crane table.list td a {
+  color: black;
+}
+
+div#crane table.list td a:hover {
+  color: #00f;
+}
+
+div#crane img {
+  border: none;
+}
+
+div#crane td#content {
+  vertical-align: top;
+  padding: 1em 2em 1em 1em;
+  border: none;
+}
+
+div#crane table.nowrap td {
+  white-space: normal;
+}
+
+div#crane .left {
+  text-align: left;
+}
+
+div#crane .right {
+  text-align: right;
+}
+
+div#crane table.list td.papersection {
+  font-weight: bold;
+  padding-top: 1em;
+  padding-bottom: .5em;
+  color: black;
+}
+
+div#crane table.list td.sublevel-paper {
+}
+
+div#crane div.footer {
+  margin-top: 0.5em;
+  text-align: center;
+  font-size: 80%;
+  color: #ccc;
+}
+
+div#crane div.footer a {
+  color: #ccc;
+  text-decoration: none;
+}
+
+div#crane div.footer a:hover {
+  text-decoration: underline;
+}
+
+* { line-height: 1.25em; }
+
+div#crane {
+  max-width: 55em;
+  margin: auto;
+  -moz-tab-size: 4;
+  tab-size: 4;
+}
+
+div#crane table.list th a {
+  color: inherit;
+}
+
+div#crane table.list tr.nohover-highlight:hover:nth-child(even) {
+  background: inherit;
+}
+
+div#crane table.blob td.linenumbers a:target {
+  color: goldenrod;
+  text-decoration: underline;
+  outline: none;
+}
+
+</style>
+</head>
+<body>
+<center>
+<div id='crane'>
+<table id='header'>
+  <tr><td class='main'><a href="/">Crane</a></td></tr>
+  <tr><td class='sub'>Research literature archival and categorization</td></tr>
+</table>
+{{ block "content" . }}{{ end }}
+<div class='footer'><a href='https://git.jordan.im/crane'>crane</a></div>
+</div>
+</center>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{{ define "list" }}
+<table summary='paper list' class='list nowrap'>
+{{ range $category, $papers := .Papers }}
+  {{ $paperCount := len $papers }}
+  {{ if ge $paperCount 1 }}
+  <tr class='nohover-highlight'>
+		<td colspan='4' class='papersection'>{{ $category }}</td>
+	</tr>
+  {{ range $path, $paper := $papers }}
+  <tr>
+    {{ if $paper.Meta.Title }}
+    <td class="sublevel-paper title"><a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a></td>
+    {{ else }}
+    <td class="sublevel-paper title"><a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a></td>
+    {{ end }}
+  </tr>
+  <tr>
+    {{ if $paper.Meta.Title }}
+    <td class="sub">author: {{ $contCount := len $paper.Meta.Contributors }} {{ if gt $contCount 0 }}{{ $author := index $paper.Meta.Contributors 0 }}<a href='/?a={{ $author.LastName }}'>{{ $author.LastName }}{{ if gt $contCount 1 }} et al.{{ end }}{{ end }}</a> yr: <a href="?y={{ $paper.Meta.PubYear }}">{{ $paper.Meta.PubYear }}</a> doi: <a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a> journal: <font color="black">{{ $paper.Meta.Journal }}</font></td>
+    {{ else }}
+    <td></td>
+    {{ end }}
+  </tr>
+  {{ end }}
+  {{ else }}
+  {{ end }}
+{{ end }}
+</table>
+{{ end }}

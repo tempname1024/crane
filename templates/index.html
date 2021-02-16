@@ -1,0 +1,16 @@
+{{ template "layout.html" . }}
+{{ define "content" }}
+<table id='header'>
+</table>
+{{ $categoryCount := len .Papers }}
+{{ if gt $categoryCount 0 }}
+<table class='tabs'>
+  <td><a class='active' href='/admin/'>Manage</a></td>
+</table>
+<div class='content'>
+{{ block "list" . }}{{ end }}
+</div>
+{{ else }}
+<p>nothing here yet, <a style="text-decoration:underline;" href="/admin/">create a category</a> to start downloading papers</p>
+{{ end }}
+{{ end }}
