@@ -1,14 +1,14 @@
 # Crane
 
-Crane is a minimal self-hosted research literature organizational web service
-with support for paper download and metadata retrieval.
+Crane is a literature download and organization web service with support for
+paper download and metadata retrieval.
 
-No databases or app-proprietary formats are used. Papers are categorized by the
-directories in which they're stored, and XML metadata is retrieved from the
-[doi.org](https://www.doi.org/) API and written alongside each paper for which
-its DOI is known.
+Goals of the project are to be minimal, support data portability (no databases
+or app-proprietary formats), and secure. Paper "categories" are simply
+directories created on the filesystem, and paper metadata taken directly from
+the [doi.org](https://www.doi.org/) API and written verbatim.
 
-![admin](screenshots/admin.png)
+A screenshot of the interface can be [found here](screenshots/admin.png).
 
 ## Installation
 
