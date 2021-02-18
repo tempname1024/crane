@@ -5,10 +5,10 @@ paper download and metadata retrieval.
 
 Goals of the project are to be minimal, support data portability (no databases
 or app-proprietary formats), and secure. Paper "categories" are simply
-directories created on the filesystem, and paper metadata taken directly from
+directories created on the filesystem, and paper metadata is taken directly from
 the [doi.org](https://www.doi.org/) API and written verbatim.
 
-A screenshot of the interface can be [found here](screenshots/admin.png).
+A screenshot of the admin interface can be [found here](screenshots/admin.png).
 
 ## Installation
 
