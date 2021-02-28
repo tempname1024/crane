@@ -114,13 +114,13 @@ func getPaperFileNameFromResp(resp *http.Response) string {
 	return filename
 }
 
-// getUniqueName ensures the provided paper name is unique, appending "-$ext"
-// until a unique name is found and returned
-func (papers *Papers) getUniqueName(c string, name string) string {
+// getUniqueName ensures a paper name is unique, appending "-$ext" until
+// a unique name is found and returned
+func (papers *Papers) getUniqueName(category string, name string) string {
 	ext := 2
 	for {
-		k := filepath.Join(c, name+".pdf")
-		if _, exists := papers.List[c][k]; exists != true {
+		key := filepath.Join(category, name+".pdf")
+		if _, exists := papers.List[category][key]; exists != true {
 			break
 		} else {
 			name = fmt.Sprint(name, "-", ext)
@@ -132,21 +132,22 @@ func (papers *Papers) getUniqueName(c string, name string) string {
 
 // findPapersWalk is a WalkFunc passed to filepath.Walk() to process papers
 // stored on the filesystem
-func (papers *Papers) findPapersWalk(path string, info os.FileInfo, err error) error {
+func (papers *Papers) findPapersWalk(path string, info os.FileInfo,
+	err error) error {
 	// skip the papers.Path root directory
 	if p, _ := filepath.Abs(path); p == papers.Path {
 		return nil
 	}
 
 	// derive category name (e.g. Mathematics) from directory name; used as key
-	var c string
+	var category string
 	if i, _ := os.Stat(path); i.IsDir() {
-		c = strings.TrimPrefix(path, papers.Path+"/")
+		category = strings.TrimPrefix(path, papers.Path+"/")
 	} else {
-		c = strings.TrimPrefix(filepath.Dir(path), papers.Path+"/")
+		category = strings.TrimPrefix(filepath.Dir(path), papers.Path+"/")
 	}
-	if _, exists := papers.List[c]; exists == false {
-		papers.List[c] = make(map[string]*Paper)
+	if _, exists := papers.List[category]; exists == false {
+		papers.List[category] = make(map[string]*Paper)
 	}
 
 	// now that category was added, ensure file is actually a PDF
@@ -154,20 +155,23 @@ func (papers *Papers) findPapersWalk(path string, info os.FileInfo, err error) e
 		return nil
 	}
 
-	var p Paper
-	p.PaperName = strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-	p.PaperPath = filepath.Join(papers.Path, filepath.Join(c, p.PaperName+".pdf"))
+	var paper Paper
+	paper.PaperName = strings.TrimSuffix(filepath.Base(path),
+		filepath.Ext(path))
+	paper.PaperPath = filepath.Join(papers.Path, filepath.Join(category,
+		paper.PaperName+".pdf"))
 
 	// XML metadata is not required but highly recommended; PDFs aren't parsed
 	// so its our source only source of metadata at the moment
 	//
 	// PDF parsing looks (and probably is) fairly annoying to support and might
 	// be better handled by an external script
-	metaPath := filepath.Join(papers.Path, filepath.Join(c, p.PaperName+".meta.xml"))
+	metaPath := filepath.Join(papers.Path, filepath.Join(category,
+		paper.PaperName+".meta.xml"))
 	if _, err := os.Stat(metaPath); err == nil {
-		p.MetaPath = metaPath
+		paper.MetaPath = metaPath
 
-		f, err := os.Open(p.MetaPath)
+		f, err := os.Open(paper.MetaPath)
 		if err != nil {
 			return err
 		}
@@ -177,7 +181,7 @@ func (papers *Papers) findPapersWalk(path string, info os.FileInfo, err error) e
 		d := xml.NewDecoder(r)
 
 		// populate p struct with values derived from doi.org metadata
-		if err := d.Decode(&p.Meta); err != nil {
+		if err := d.Decode(&paper.Meta); err != nil {
 			return err
 		}
 		if err := f.Close(); err != nil {
@@ -187,7 +191,8 @@ func (papers *Papers) findPapersWalk(path string, info os.FileInfo, err error) e
 
 	// finally add paper to papers.List set; the subkey is the paper path
 	// relative to papers.Path, e.g. Mathematics/example2020.pdf
-	papers.List[c][filepath.Join(c, p.PaperName+".pdf")] = &p
+	relPath := filepath.Join(category, paper.PaperName+".pdf")
+	papers.List[category][relPath] = &paper
 	return nil
 }
 
@@ -202,7 +207,8 @@ func (papers *Papers) PopulatePapers() error {
 
 // NewPaperFromDirectLink contains routines used to retrieve papers from remote
 // endpoints provided a direct link's http.Response
-func (papers *Papers) NewPaperFromDirectLink(resp *http.Response, c string) (*Paper, error) {
+func (papers *Papers) NewPaperFromDirectLink(resp *http.Response,
+	category string) (*Paper, error) {
 	tmpPDF, err := ioutil.TempFile("", "tmp-*.pdf")
 	if err != nil {
 		return &Paper{}, err
@@ -216,23 +222,28 @@ func (papers *Papers) NewPaperFromDirectLink(resp *http.Response, c string) (*Pa
 	}
 	defer os.Remove(tmpPDF.Name())
 
-	var p Paper
-	p.PaperName = papers.getUniqueName(c, getPaperFileNameFromResp(resp))
+	var paper Paper
+	paper.PaperName = papers.getUniqueName(category,
+		getPaperFileNameFromResp(resp))
+
 	if err != nil {
 		return &Paper{}, err
 	}
-	p.PaperPath = filepath.Join(papers.Path, filepath.Join(c, p.PaperName+".pdf"))
+	paper.PaperPath = filepath.Join(papers.Path,
+		filepath.Join(category, paper.PaperName+".pdf"))
 
-	if err := renameFile(tmpPDF.Name(), p.PaperPath); err != nil {
+	if err := renameFile(tmpPDF.Name(), paper.PaperPath); err != nil {
 		return nil, err
 	}
-	papers.List[c][filepath.Join(c, p.PaperName+".pdf")] = &p
-	return &p, nil
+	papers.List[category][filepath.Join(category,
+		paper.PaperName+".pdf")] = &paper
+	return &paper, nil
 }
 
 // NewPaperFromDOI contains routines used to retrieve papers from remote
 // endpoints provided a DOI
-func (papers *Papers) NewPaperFromDOI(doi []byte, c string) (*Paper, error) {
+func (papers *Papers) NewPaperFromDOI(doi []byte, category string) (*Paper,
+	error) {
 	tmpXML, err := getMetaFromDOI(client, doi)
 	if err != nil {
 		return nil, err
@@ -248,33 +259,38 @@ func (papers *Papers) NewPaperFromDOI(doi []byte, c string) (*Paper, error) {
 	d := xml.NewDecoder(r)
 
 	// populate p struct with values derived from doi.org metadata
-	var p Paper
-	if err := d.Decode(&p.Meta); err != nil {
+	var paper Paper
+	if err := d.Decode(&paper.Meta); err != nil {
 		return nil, err
 	}
 	if err := f.Close(); err != nil {
 		return nil, err
 	}
 
-	n := getPaperFileNameFromMeta(&p.Meta) // doe2020
-	if n == "" {
+	name := getPaperFileNameFromMeta(&paper.Meta) // doe2020
+	if name == "" {
 		// last-resort condition if metadata lacking author or publication year
-		n = strings.Replace(string(doi), "..", "", -1)
-		n = strings.Replace(string(doi), "/", "", -1)
+		name = strings.Replace(string(doi), "..", "", -1)
+		name = strings.Replace(string(doi), "/", "", -1)
 	}
-	u := papers.getUniqueName(c, n) // doe2020-(2, 3, 4...) if n already exists
+
+	// doe2020-(2, 3, 4...) if n already exists in set
+	uniqueName := papers.getUniqueName(category, name)
 
 	// if not matching, check if DOIs match (genuine duplicate)
-	if n != u {
-		k := filepath.Join(c, n+".pdf")
-		if p.Meta.DOI == papers.List[c][k].Meta.DOI {
-			return nil, fmt.Errorf("paper %q with DOI %q already downloaded", n, string(doi))
+	if name != uniqueName {
+		key := filepath.Join(category, name+".pdf")
+		if paper.Meta.DOI == papers.List[category][key].Meta.DOI {
+			return nil, fmt.Errorf("paper %q with DOI %q already downloaded",
+				name, string(doi))
 		}
 	}
 
-	p.PaperName = u
-	p.PaperPath = filepath.Join(filepath.Join(papers.Path, c), p.PaperName+".pdf")
-	p.MetaPath = filepath.Join(filepath.Join(papers.Path, c), p.PaperName+".meta.xml")
+	paper.PaperName = uniqueName
+	paper.PaperPath = filepath.Join(filepath.Join(papers.Path, category),
+		paper.PaperName+".pdf")
+	paper.MetaPath = filepath.Join(filepath.Join(papers.Path, category),
+		paper.PaperName+".meta.xml")
 
 	// parse scihubURL and join it w/ the DOI (accounts for no trailing slash)
 	url, _ := url.Parse(scihubURL)
@@ -287,39 +303,42 @@ func (papers *Papers) NewPaperFromDOI(doi []byte, c string) (*Paper, error) {
 	}
 	defer os.Remove(tmpPDF)
 
-	if err := renameFile(tmpPDF, p.PaperPath); err != nil {
+	if err := renameFile(tmpPDF, paper.PaperPath); err != nil {
 		return nil, err
 	}
-	if err := renameFile(tmpXML, p.MetaPath); err != nil {
+	if err := renameFile(tmpXML, paper.MetaPath); err != nil {
 		return nil, err
 	}
-	papers.List[c][filepath.Join(c, p.PaperName+".pdf")] = &p
-	return &p, nil
+	papers.List[category][filepath.Join(category,
+		paper.PaperName+".pdf")] = &paper
+	return &paper, nil
 }
 
-// DeletePaper deletes the provided paper and its metadata from the filesystem
-// and the papers.List set
-func (papers *Papers) DeletePaper(p string) error {
+// DeletePaper deletes a paper and its metadata from the filesystem and the
+// papers.List set
+func (papers *Papers) DeletePaper(paper string) error {
 	// check if the category in which the paper is said to belong
 	// exists
-	c := filepath.Dir(p)
-	if _, exists := papers.List[c]; exists != true {
-		return fmt.Errorf("category %q does not exist\n", papers.List[filepath.Dir(p)])
+	category := filepath.Dir(paper)
+	if _, exists := papers.List[category]; exists != true {
+		return fmt.Errorf("category %q does not exist\n",
+			papers.List[filepath.Dir(paper)])
 	}
 
-	// check if paper exists in the provided category
-	if _, exists := papers.List[c][p]; exists != true {
-		return fmt.Errorf("paper %q does not exist in category %q\n", p, c)
+	// check if paper already exists in the provided category
+	if _, exists := papers.List[category][paper]; exists != true {
+		return fmt.Errorf("paper %q does not exist in category %q\n", paper,
+			category)
 	}
 
 	// paper and category exists and the paper belongs to the provided
 	// category; remove it and its XML metadata
-	if err := os.Remove(papers.List[c][p].PaperPath); err != nil {
+	if err := os.Remove(papers.List[category][paper].PaperPath); err != nil {
 		return err
 	}
 
 	// XML metadata optional; delete it if it exists
-	metaPath := papers.List[c][p].MetaPath
+	metaPath := papers.List[category][paper].MetaPath
 	if metaPath != "" {
 		if _, err := os.Stat(metaPath); err == nil {
 			if err := os.Remove(metaPath); err != nil {
@@ -327,131 +346,158 @@ func (papers *Papers) DeletePaper(p string) error {
 			}
 		}
 	}
-	delete(papers.List[c], p)
+	delete(papers.List[category], paper)
 	return nil
 }
 
-// DeleteCategory deletes the provided category and its contents from the
-// filesystem and the papers.List set
-func (papers *Papers) DeleteCategory(c string) error {
-	if _, exists := papers.List[c]; exists != true {
-		return fmt.Errorf("category %q does not exist in the set\n", c)
+// DeleteCategory deletes a category and its contents from the filesystem and
+// the papers.List set
+func (papers *Papers) DeleteCategory(category string) error {
+	if _, exists := papers.List[category]; exists != true {
+		return fmt.Errorf("category %q does not exist in the set\n", category)
 	}
-	if err := os.RemoveAll(filepath.Join(papers.Path, c)); err != nil {
+	if err := os.RemoveAll(filepath.Join(papers.Path, category)); err != nil {
 		return err
 	}
-	// remove categories which exist as subcategories of the deleted category
-	// from the set
-	for k, _ := range papers.List {
-		if strings.HasPrefix(k, c+"/") {
-			delete(papers.List, k)
+	// remove subcategories (nested directories) which exist under the primary
+	for key, _ := range papers.List {
+		if strings.HasPrefix(key, category+"/") {
+			delete(papers.List, key)
 		}
 	}
-	delete(papers.List, c)
+	delete(papers.List, category)
 	return nil
 }
 
-// MovePaper moves the provided paper to the destination category on the
-// filesystem and the papers.List set
-func (papers *Papers) MovePaper(p string, c string) error {
-	cPrev := filepath.Dir(p)
-	if _, exists := papers.List[cPrev]; exists != true {
-		return fmt.Errorf("category %q does not exist\n", cPrev)
+// MovePaper moves a paper to the destination category on the filesystem and
+// the papers.List set
+func (papers *Papers) MovePaper(paper string, category string) error {
+	prevCategory := filepath.Dir(paper)
+	if _, exists := papers.List[prevCategory]; exists != true {
+		return fmt.Errorf("category %q does not exist\n", prevCategory)
 	}
-	if _, exists := papers.List[c]; exists != true {
-		return fmt.Errorf("category %q does not exist\n", c)
+	if _, exists := papers.List[category]; exists != true {
+		return fmt.Errorf("category %q does not exist\n", category)
 	}
-	if _, exists := papers.List[cPrev][p]; exists != true {
-		return fmt.Errorf("paper %q does not exist in category %q\n", p, cPrev)
+	if _, exists := papers.List[prevCategory][paper]; exists != true {
+		return fmt.Errorf("paper %q does not exist in category %q\n", paper,
+			prevCategory)
 	}
-	if _, exists := papers.List[c][p]; exists == true {
-		return fmt.Errorf("paper %q exists in destination category %q\n", p, c)
+	if _, exists := papers.List[category][paper]; exists == true {
+		return fmt.Errorf("paper %q exists in destination category %q\n",
+			paper, category)
 	}
-	paperDest := filepath.Join(filepath.Join(papers.Path, c), papers.List[cPrev][p].PaperName+".pdf")
-	if err := os.Rename(papers.List[cPrev][p].PaperPath, paperDest); err != nil {
+	paperDest := filepath.Join(filepath.Join(papers.Path, category),
+		papers.List[prevCategory][paper].PaperName+".pdf")
+	if err := os.Rename(papers.List[prevCategory][paper].PaperPath, paperDest);
+		err != nil {
 		return err
 	}
-	papers.List[c][filepath.Join(c, filepath.Base(p))] = papers.List[cPrev][p]
-	papers.List[c][filepath.Join(c, filepath.Base(p))].PaperPath = paperDest
 
-	// XML metadata optional; move it if it exists
-	metaPath := papers.List[cPrev][p].MetaPath
+	papers.List[category][filepath.Join(category,
+		filepath.Base(paper))] = papers.List[prevCategory][paper]
+
+	papers.List[category][filepath.Join(category,
+		filepath.Base(paper))].PaperPath = paperDest
+
+	// XML metadata optional; move if any exists
+	metaPath := papers.List[prevCategory][paper].MetaPath
 	if metaPath != "" {
 		if _, err := os.Stat(metaPath); err == nil {
-			metaName := papers.List[cPrev][p].PaperName + ".meta.xml"
-			metaDest := filepath.Join(filepath.Join(papers.Path, c), metaName)
+			metaName := papers.List[prevCategory][paper].PaperName +
+				".meta.xml"
+			metaDest := filepath.Join(filepath.Join(papers.Path, category),
+				metaName)
 			if err := os.Rename(metaPath, metaDest); err != nil {
 				return err
 			}
-			papers.List[c][filepath.Join(c, filepath.Base(p))].MetaPath = metaDest
+			papers.List[category][filepath.Join(category,
+				filepath.Base(paper))].MetaPath = metaDest
 		}
 	}
-	delete(papers.List[cPrev], p)
+	delete(papers.List[prevCategory], paper)
 	return nil
 }
 
-// RenameCategory renames the provided category on the filesystem and the
-// paper.List set
-func (papers *Papers) RenameCategory(c string, d string) error {
-	if _, exists := papers.List[c]; exists != true {
-		return fmt.Errorf("category %q does not exist in the set\n", c)
+// RenameCategory renames a category on the filesystem and the paper.List set
+func (papers *Papers) RenameCategory(oldCategory string,
+	newCategory string) error {
+	if _, exists := papers.List[oldCategory]; exists != true {
+		return fmt.Errorf("category %q does not exist in the set\n", oldCategory)
 	}
-	if _, exists := papers.List[d]; exists == true {
-		return fmt.Errorf("category %q already exists in the set\n", d)
+	if _, exists := papers.List[newCategory]; exists == true {
+		return fmt.Errorf("category %q already exists in the set\n", newCategory)
 	}
-	if err := os.Rename(filepath.Join(papers.Path, c), filepath.Join(papers.Path, d)); err != nil {
+	if err := os.Rename(filepath.Join(papers.Path, oldCategory),
+		filepath.Join(papers.Path, newCategory)); err != nil {
 		return err
 	}
-	papers.List[d] = make(map[string]*Paper)
-	for k, v := range papers.List[c] {
-		pPaperPath := filepath.Join(papers.Path, filepath.Join(d, v.PaperName+".pdf"))
-		pK := filepath.Join(d, filepath.Base(k))
-		papers.List[d][pK] = papers.List[c][k]
-		papers.List[d][pK].PaperPath = pPaperPath
+	papers.List[newCategory] = make(map[string]*Paper)
+	for k, v := range papers.List[oldCategory] {
+		pPaperPath := filepath.Join(papers.Path, filepath.Join(newCategory,
+			v.PaperName+".pdf"))
+		pK := filepath.Join(newCategory, filepath.Base(k))
+		papers.List[newCategory][pK] = papers.List[oldCategory][k]
+		papers.List[newCategory][pK].PaperPath = pPaperPath
 
 		if v.MetaPath != "" {
-			pMetaPath := filepath.Join(papers.Path, filepath.Join(d, v.PaperName+".meta.xml"))
-			papers.List[d][pK].MetaPath = pMetaPath
+			pMetaPath := filepath.Join(papers.Path, filepath.Join(newCategory,
+				v.PaperName+".meta.xml"))
+			papers.List[newCategory][pK].MetaPath = pMetaPath
 		}
 	}
-	delete(papers.List, c)
+	delete(papers.List, oldCategory)
 	return nil
 }
 
-// ProcessAddPaperInput processes user-provided input related to new paper
-// download; c is the category, p can be a URL or DOI
-func (papers *Papers) ProcessAddPaperInput(c string, p string) (*Paper, error) {
+// ProcessAddPaperInput processes takes user input and attempts to retrieve
+// a DOI and initiate paper download
+func (papers *Papers) ProcessAddPaperInput(category string,
+	input string) (*Paper, error) {
 	var doi []byte
-	if u, err := url.Parse(p); err == nil && u.Scheme != "" && u.Host != "" {
-		resp, err := makeRequest(client, p)
+
+	// URL processing routine; download paper directly or check page for a DOI
+	if u, _ := url.Parse(input); u.Scheme != "" && u.Host != "" {
+		resp, err := makeRequest(client, input)
 		if err != nil {
 			return &Paper{}, err
 		}
+
+		// if URL is direct link we'll download it directly, skipping
+		// metadata processing
 		if resp.Header.Get("Content-Type") == "application/pdf" {
-			paper, err := papers.NewPaperFromDirectLink(resp, c)
+			paper, err := papers.NewPaperFromDirectLink(resp, category)
 			if err != nil {
 				return &Paper{}, err
 			}
 			return paper, nil
 		}
+
+		// URL was not a PDF, parse the page directly for a DOI
 		doi = getDOIFromPage(resp)
 		if doi == nil {
-			resp, err = makeRequest(client, scihubURL+p)
+			resp, err = makeRequest(client, scihubURL+input)
 			if err != nil {
-				return &Paper{}, fmt.Errorf("%q: DOI not found on page", p)
+				return &Paper{}, fmt.Errorf("%q: DOI not found on page", input)
 			}
 			doi = getDOIFromPage(resp)
 		}
+
+		// input was a URL but we've exhausted download routes (no DOI, no
+		// direct link...), abort
 		if doi == nil {
-			return &Paper{}, fmt.Errorf("%q: DOI not found on page", p)
+			return &Paper{}, fmt.Errorf("%q: DOI not found on page", input)
 		}
 	} else {
-		doi = getDOIFromBytes([]byte(p))
+		// input was not a URL, hopefully it has or contains a DOI
+		doi = getDOIFromBytes([]byte(input))
 		if doi == nil {
-			return &Paper{}, fmt.Errorf("%q is not a valid DOI or URL\n", p)
+			return &Paper{}, fmt.Errorf("%q is not a valid DOI or URL\n", input)
 		}
 	}
-	paper, err := papers.NewPaperFromDOI(doi, c)
+
+	// we have a DOI by this point, cool--download the paper
+	paper, err := papers.NewPaperFromDOI(doi, category)
 	if err != nil {
 		return &Paper{}, err
 	}
@@ -490,8 +536,10 @@ func (papers *Papers) AdminHandler(w http.ResponseWriter, r *http.Request) {
 		if ok && user == username && pass == password {
 			t.Execute(w, &res)
 		} else {
-			w.Header().Add("WWW-Authenticate", `Basic realm="Please authenticate"`)
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			w.Header().Add("WWW-Authenticate",
+				`Basic realm="Please authenticate"`)
+			http.Error(w, http.StatusText(http.StatusUnauthorized),
+				http.StatusUnauthorized)
 		}
 	} else {
 		t.Execute(w, &res)
@@ -511,8 +559,10 @@ func (papers *Papers) EditHandler(w http.ResponseWriter, r *http.Request) {
 	if user != "" && pass != "" {
 		username, password, ok := r.BasicAuth()
 		if !ok || user != username || pass != password {
-			w.Header().Add("WWW-Authenticate", `Basic realm="Please authenticate"`)
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			w.Header().Add("WWW-Authenticate",
+				`Basic realm="Please authenticate"`)
+			http.Error(w, http.StatusText(http.StatusUnauthorized),
+				http.StatusUnauthorized)
 			return
 		}
 	}
@@ -523,19 +573,19 @@ func (papers *Papers) EditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if action := r.FormValue("action"); action == "delete" {
-		for _, p := range r.Form["paper"] {
+		for _, paper := range r.Form["paper"] {
 			if res.Status != "" {
 				break
 			}
-			if err := papers.DeletePaper(p); err != nil {
+			if err := papers.DeletePaper(paper); err != nil {
 				res.Status = err.Error()
 			}
 		}
-		for _, c := range r.Form["category"] {
+		for _, category := range r.Form["category"] {
 			if res.Status != "" {
 				break
 			}
-			if err := papers.DeleteCategory(c); err != nil {
+			if err := papers.DeleteCategory(category); err != nil {
 				res.Status = err.Error()
 			}
 		}
@@ -543,12 +593,12 @@ func (papers *Papers) EditHandler(w http.ResponseWriter, r *http.Request) {
 			res.Status = "delete successful"
 		}
 	} else if strings.HasPrefix(action, "move") {
-		cDest := strings.SplitN(action, "move-", 2)[1]
-		for _, p := range r.Form["paper"] {
+		destCategory := strings.SplitN(action, "move-", 2)[1]
+		for _, paper := range r.Form["paper"] {
 			if res.Status != "" {
 				break
 			}
-			if err := papers.MovePaper(p, cDest); err != nil {
+			if err := papers.MovePaper(paper, destCategory); err != nil {
 				res.Status = err.Error()
 			}
 		}
@@ -583,8 +633,10 @@ func (papers *Papers) AddHandler(w http.ResponseWriter, r *http.Request) {
 	if user != "" && pass != "" {
 		username, password, ok := r.BasicAuth()
 		if !ok || user != username || pass != password {
-			w.Header().Add("WWW-Authenticate", `Basic realm="Please authenticate"`)
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			w.Header().Add("WWW-Authenticate",
+				`Basic realm="Please authenticate"`)
+			http.Error(w, http.StatusText(http.StatusUnauthorized),
+				http.StatusUnauthorized)
 			return
 		}
 	}
@@ -592,27 +644,28 @@ func (papers *Papers) AddHandler(w http.ResponseWriter, r *http.Request) {
 	c := r.FormValue("dl-category")
 	nc := r.FormValue("new-category")
 
-	// sanitize input; we use the category to build the path used to save papers
+	// sanitize input; we use the category to build the path used to save
+	// papers
 	nc = strings.Trim(strings.Replace(nc, "..", "", -1), "/.")
-
-	addPaper := len(strings.TrimSpace(p)) > 0 && len(strings.TrimSpace(c)) > 0
-	addCategory := len(strings.TrimSpace(nc)) > 0
 	res := Resp{Papers: papers.List}
 
 	// paper download, both required fields populated
-	if addPaper {
+	if len(strings.TrimSpace(p)) > 0 && len(strings.TrimSpace(c)) > 0 {
 		if paper, err := papers.ProcessAddPaperInput(c, p); err != nil {
 			res.Status = err.Error()
 		} else {
 			if paper.Meta.Title != "" {
-				res.Status = fmt.Sprintf("%q downloaded successfully", paper.Meta.Title)
+				res.Status = fmt.Sprintf("%q downloaded successfully",
+					paper.Meta.Title)
 			} else {
-				res.Status = fmt.Sprintf("%q downloaded successfully", paper.PaperName)
+				res.Status = fmt.Sprintf("%q downloaded successfully",
+					paper.PaperName)
 			}
-			res.LastPaperDL = strings.TrimPrefix(paper.PaperPath, papers.Path+"/") // example/doe2021.pdf
+			res.LastPaperDL = strings.TrimPrefix(paper.PaperPath,
+				papers.Path+"/")
 		}
 		res.LastUsedCategory = c
-	} else if addCategory {
+	} else if len(strings.TrimSpace(nc)) > 0 {
 		// accounts for nested category addition; e.g. "foo/bar/baz" where
 		// "foo/bar" and/or "foo" do not already exist
 		n := nc
@@ -620,8 +673,9 @@ func (papers *Papers) AddHandler(w http.ResponseWriter, r *http.Request) {
 			_, exists := papers.List[n]
 			if exists == true {
 				res.Status = fmt.Sprintf("category %q already exists", n)
-			} else if err := os.MkdirAll(filepath.Join(papers.Path, n), os.ModePerm); err != nil {
-				res.Status = fmt.Sprintf("category %q could not be created on the filesystem", n)
+			} else if err := os.MkdirAll(filepath.Join(papers.Path, n),
+				os.ModePerm); err != nil {
+				res.Status = fmt.Sprintf(err.Error())
 			} else {
 				papers.List[n] = make(map[string]*Paper)
 			}
@@ -640,34 +694,38 @@ func (papers *Papers) AddHandler(w http.ResponseWriter, r *http.Request) {
 
 // DownloadHandler serves saved papers up for download
 func (papers *Papers) DownloadHandler(w http.ResponseWriter, r *http.Request) {
-	p := strings.TrimPrefix(r.URL.Path, "/download/")
-	c := filepath.Dir(p)
+	paper := strings.TrimPrefix(r.URL.Path, "/download/")
+	category := filepath.Dir(paper)
 
 	// return 404 if the provided paper category or paper key do not exist in
 	// the papers set
-	if _, exists := papers.List[c]; exists == false {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+	if _, exists := papers.List[category]; exists == false {
+		http.Error(w, http.StatusText(http.StatusNotFound),
+			http.StatusNotFound)
 		return
 	}
-	if _, exists := papers.List[c][p]; exists == false {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+	if _, exists := papers.List[category][paper]; exists == false {
+		http.Error(w, http.StatusText(http.StatusNotFound),
+			http.StatusNotFound)
 		return
 	}
 
 	// ensure the paper (PaperPath) actually exists on the filesystem
-	i, err := os.Stat(papers.List[c][p].PaperPath)
+	i, err := os.Stat(papers.List[category][paper].PaperPath)
 	if os.IsNotExist(err) {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		http.Error(w, http.StatusText(http.StatusNotFound),
+			http.StatusNotFound)
 	} else if i.IsDir() {
-		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		http.Error(w, http.StatusText(http.StatusForbidden),
+			http.StatusForbidden)
 	} else {
-		http.ServeFile(w, r, papers.List[c][p].PaperPath)
+		http.ServeFile(w, r, papers.List[category][paper].PaperPath)
 	}
 }
 
 func main() {
 	// some publishers have cookie + HTTP 302 checks (e.g. sagepub), let's look
-	// more like a real browser
+	// like a real browser
 	options := cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
 	}
@@ -678,7 +736,8 @@ func main() {
 
 	// custom DialContext which blocks outbound requests to local addresses and
 	// interfaces (security)
-	http.DefaultTransport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+	http.DefaultTransport.(*http.Transport).DialContext = func(ctx context.Context,
+		network, addr string) (net.Conn, error) {
 		// we could run our check after a dial, but we'd have to discard
 		// connect errors to prevent exposure of local services; a preemptive
 		// lookup is the lesser of two evils, I think
@@ -700,7 +759,8 @@ func main() {
 	papers.List = make(map[string]map[string]*Paper)
 
 	flag.StringVar(&scihubURL, "sci-hub", "https://sci-hub.se/", "Sci-Hub URL")
-	flag.StringVar(&papers.Path, "path", "./papers", "Absolute or relative path to papers folder")
+	flag.StringVar(&papers.Path, "path", "./papers",
+		"Absolute or relative path to papers folder")
 	flag.StringVar(&host, "host", "127.0.0.1", "IP address to listen on")
 	flag.Uint64Var(&port, "port", 9090, "Port to listen on")
 	flag.StringVar(&user, "user", "", "Username for /admin/ endpoints (optional)")
@@ -720,7 +780,8 @@ func main() {
 	}
 
 	// prefer system-installed template assets over project-local paths
-	if _, err := os.Stat(filepath.Join(buildPrefix, "/share/crane/templates")); err != nil {
+	if _, err := os.Stat(filepath.Join(buildPrefix,
+		"/share/crane/templates")); err != nil {
 		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 		if err != nil {
 			log.Fatal(err)
@@ -735,6 +796,7 @@ func main() {
 	http.HandleFunc("/admin/edit/", papers.EditHandler)
 	http.HandleFunc("/admin/add/", papers.AddHandler)
 	http.HandleFunc("/download/", papers.DownloadHandler)
-	fmt.Printf("Listening on %v port %v (http://%v:%v/)\n", host, port, host, port)
+	fmt.Printf("Listening on %v port %v (http://%v:%v/)\n", host, port, host,
+		port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), nil))
 }
