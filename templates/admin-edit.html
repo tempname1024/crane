@@ -57,7 +57,7 @@
   </tr>
   <tr>
     {{ if $paper.Meta.Title }}
-    <td class="sub">author: {{ $contCount := len $paper.Meta.Contributors }} {{ if gt $contCount 0 }}{{ $author := index $paper.Meta.Contributors 0 }}<a href='/?a={{ $author.LastName }}'>{{ $author.LastName }}{{ if gt $contCount 1 }} et al.{{ end }}{{ end }}</a> yr: <a href="?y={{ $paper.Meta.PubYear }}">{{ $paper.Meta.PubYear }}</a> doi: <a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a> journal: <font color="black">{{ $paper.Meta.Journal }}</font></td>
+    <td class="sub">{{ $paper.Meta.PubYear }} - {{ $contCount := len $paper.Meta.Contributors }} {{ if gt $contCount 0 }}{{ $author := index $paper.Meta.Contributors 0 }}{{ $author.LastName }}{{ if gt $contCount 1 }} et al.{{ end }}{{ end }} - <a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a> - {{ $paper.Meta.Journal }}</td>
     {{ else }}
     <td></td>
     {{ end }}

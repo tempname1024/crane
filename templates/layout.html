@@ -19,9 +19,10 @@
 div#crane {
   font-family: monospace;
   padding: 0em;
-  margin: 0em;
   background: white;
   padding: 4px;
+  max-width: 55em;
+  margin: auto;
 }
 
 div#crane a {
@@ -155,10 +156,6 @@ div#crane table.list {
   border-collapse: collapse;
 }
 
-div#crane table.list tr {
-  background: white;
-}
-
 div#crane table.list:first-child tr:first-child td:first-child {
   padding-top: 0em;
 }
@@ -168,16 +165,6 @@ div#crane table.list td.sub {
   font-size: 80%;
 }
 
-div#crane table.list th {
-  font-weight: bold;
-  /* color: #888;
-  border-top: dashed 1px #888;
-  border-bottom: dashed 1px #888;
-  */
-  padding: 0.1em 0.5em 0.05em 0.5em;
-  vertical-align: baseline;
-}
-
 div#crane table.list td {
   border: none;
   padding: 0.1em 0.5em 0.1em 0.5em;
@@ -185,48 +172,12 @@ div#crane table.list td {
 
 div#crane table.list td.title {
   text-decoration: underline;
-}
-
-div#crane table.list td.authors {
-  max-width: 10em;
-}
-
-div#crane table.list td.year {
-  max-width: 5em;
-}
-
-div#crane table.list td.doi {
-  max-width: 5em;
-}
-
-div#crane table.list td a {
-  color: black;
+  padding-top: 0.5em;
+  padding-left: 1.5em;
 }
 
 div#crane table.list td a:hover {
   color: #00f;
-}
-
-div#crane img {
-  border: none;
-}
-
-div#crane td#content {
-  vertical-align: top;
-  padding: 1em 2em 1em 1em;
-  border: none;
-}
-
-div#crane table.nowrap td {
-  white-space: normal;
-}
-
-div#crane .left {
-  text-align: left;
-}
-
-div#crane .right {
-  text-align: right;
 }
 
 div#crane table.list td.papersection {
@@ -234,9 +185,6 @@ div#crane table.list td.papersection {
   padding-top: 1em;
   padding-bottom: .5em;
   color: black;
-}
-
-div#crane table.list td.sublevel-paper {
 }
 
 div#crane div.footer {
@@ -254,30 +202,6 @@ div#crane div.footer a {
 div#crane div.footer a:hover {
   text-decoration: underline;
 }
-
-* { line-height: 1.25em; }
-
-div#crane {
-  max-width: 55em;
-  margin: auto;
-  -moz-tab-size: 4;
-  tab-size: 4;
-}
-
-div#crane table.list th a {
-  color: inherit;
-}
-
-div#crane table.list tr.nohover-highlight:hover:nth-child(even) {
-  background: inherit;
-}
-
-div#crane table.blob td.linenumbers a:target {
-  color: goldenrod;
-  text-decoration: underline;
-  outline: none;
-}
-
 </style>
 </head>
 <body>
@@ -285,7 +209,7 @@ div#crane table.blob td.linenumbers a:target {
 <div id='crane'>
 <table id='header'>
   <tr><td class='main'><a href="/">Crane</a></td></tr>
-  <tr><td class='sub'>Research literature archival and categorization</td></tr>
+  <tr><td class='sub'>Research literature download and organization</td></tr>
 </table>
 {{ block "content" . }}{{ end }}
 <div class='footer'><a href='https://git.jordan.im/crane'>crane</a></div>
