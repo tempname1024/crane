@@ -49,7 +49,7 @@ func isPrivateIP(ip net.IP) bool {
 
 // getDOIFromBytes returns the DOI parsed from the provided []byte slice
 func getDOIFromBytes(b []byte) []byte {
-	re := regexp.MustCompile(`(10[.][0-9]{4,}[^\s"/<>]*/[^\s"'<>,\{\};:\[\]\?&]+)`)
+	re := regexp.MustCompile(`(10[.][0-9]{4,}[^\s"/<>]*/[^\s"'<>,\{\};\[\]\?&]+)`)
 	return re.Find(b)
 }
 
