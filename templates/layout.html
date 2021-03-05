@@ -18,15 +18,15 @@
 
 div#crane {
   font-family: monospace;
-  padding: 0em;
   background: white;
   padding: 4px;
-  max-width: 45em;
+  max-width: 55em;
   margin: auto;
+  overflow-wrap: break-word;
 }
 
 div#crane a {
-  color: blue;
+  color: #000;
   text-decoration: none;
 }
 
@@ -62,13 +62,6 @@ div#crane .btn {
 	border-radius: 0;
 }
 
-div#crane a:hover {
-  text-decoration: underline;
-}
-div#crane a {
-  color: #000;
-}
-
 div#crane table {
   border-collapse: collapse;
 }
@@ -97,11 +90,6 @@ div#crane table#header td.form {
   vertical-align: bottom;
   padding-bottom: 2px;
   white-space: nowrap;
-}
-
-div#crane table#header td.form form,
-div#crane table#header td.form input,
-div#crane table#header td.form select {
 }
 
 div#crane table#header td.sub {
@@ -140,51 +128,72 @@ div#crane table.tabs td.form form {
   padding-left: 1em;
 }
 
-div#crane table.tabs td.form input,
-div#crane table.tabs td.form select {
-}
-
 div#crane div.content {
   margin-top: 1em;
   padding-bottom: 1em;
   border-bottom: solid 2px #ccc;
 }
 
-div#crane table.list {
+div#crane div.cat {
+  font-size: 80%;
+  color: #555;
+  padding-bottom: 1em;
+}
+
+div#crane div.list {
   width: 100%;
   border: none;
   border-collapse: collapse;
+  text-align: left;
 }
 
-div#crane table.list:first-child tr:first-child td:first-child {
-  padding-top: 0em;
+div#crane div.content div.action {
+  padding-top: 1em;
+  padding-bottom: 1em;
 }
 
-div#crane table.list td.sub {
-  padding-left: 4em;
+div#crane div.list div.paper {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  padding-left: 10px;
+}
+
+div#crane div.list span.authors {
+  font-size: 80%;
+  color: #900;
+}
+
+div#crane div.list span.year {
+  font-size: 80%;
+  color: #090;
+}
+
+div#crane div.list span.doi a {
   font-size: 80%;
 }
 
-div#crane table.list td {
+div#crane div.list span.journal {
+  font-size: 80%;
+}
+
+div#crane div.list span {
   border: none;
-  padding: 0.1em 0.5em 0.1em 0.5em;
 }
 
-div#crane table.list td.title {
-  text-decoration: underline;
+div#crane div.list span.title {
   padding-top: 0.5em;
-  padding-left: 1.5em;
 }
 
-div#crane table.list td a:hover {
-  color: #00f;
+div#crane div.list span.title a {
+  text-decoration: underline;
 }
 
-div#crane table.list td.papersection {
+div#crane div.list div.papersection {
   font-weight: bold;
-  padding-top: 1em;
-  padding-bottom: .5em;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
   color: black;
+  font-size: 120%;
 }
 
 div#crane div.footer {

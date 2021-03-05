@@ -19,6 +19,9 @@
   {{ end }}
   </tr>
 </table>
+<div class="cat">
+  <span>{{ range $category, $paper := .Papers }}[<a href="#{{ $category }}">{{ $category }}</a>] {{ end }}</span>
+</div>
 <table class='tabs'>
   <tr>
     <td><a class='active' href='/admin/'>Back</a></td>
@@ -27,6 +30,7 @@
 <div class='content'>
 {{ if gt $categoryCount 0 }}
 <form method='post' action='/admin/edit/'>
+  <div class="action">
   <select class="btn" name="action" id="Action">
     <optgroup label="Action">
       <option value="delete">Delete</option>
@@ -38,32 +42,29 @@
     </optgroup>
   </select>
   <input class='btn' type="submit" value="Save" />
-<table summary='paper list' class='list nowrap'>
+  </div>
+<div class='papers nowrap list'>
 {{ range $category, $papers := .Papers }}
   {{ $paperCount := len $papers }}
-  <tr class='nohover-highlight'>
-		<td colspan='4' class='papersection'>
-			<input type="checkbox" id="{{ $category }}" name="category" value="{{ $category }}">
-			<label for="{{ $category }}">{{ $category }}</label>
-		</td>
-	</tr>
+  <div class="papersection">
+  <input type="checkbox" id="{{ $category }}" name="category" value="{{ $category }}">
+  <label for="{{ $category }}"><span class='papersection' id='{{ $category }}'>{{ $category }}</span></label>
+  </div>
   {{ range $path, $paper := $papers }}
-  <tr>
+    <div class="paper">
     {{ if $paper.Meta.Title }}
-    <td class="sublevel-paper title"><input type="checkbox" id="{{ $path }}" name="paper" value="{{ $path }}"><label for="{{ $path }}"><a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a></label></td>
+    <span class="title"><input type="checkbox" id="{{ $path }}" name="paper" value="{{ $path }}"> <a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a></input></span><br>
     {{ else }}
-    <td class="sublevel-paper title"><input type="checkbox" id="{{ $path }}" name="paper" value="{{ $path }}"><label for="{{ $path }}"><a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a></label></td>
+    <span class="title"><input type="checkbox" id="{{ $path }}" name="paper" value="{{ $path }}"><label for="{{ $path }}"> <a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a></label></span><br>
     {{ end }}
-  </tr>
-  <tr>
+
     {{ if $paper.Meta.Title }}
-    <td class="sub">{{ $paper.Meta.PubYear }} - {{ $contCount := len $paper.Meta.Contributors }} {{ if gt $contCount 0 }}{{ $author := index $paper.Meta.Contributors 0 }}{{ $author.LastName }}{{ if gt $contCount 1 }} et al.{{ end }}{{ end }} - <a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a> - {{ $paper.Meta.Journal }}</td>
-    {{ else }}
-    <td></td>
+    <span class="authors">{{ range $index, $contributor := $paper.Meta.Contributors }}{{if $index}}, {{end}}{{ $contributor.FirstName }} {{ $contributor.LastName }}{{end}}</span><br>
+    <span class="year">{{ $paper.Meta.PubYear }}</span> - <span class="doi"><a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a></span> - <span class="journal">{{ $paper.Meta.Journal }}</span>
     {{ end }}
-  </tr>
+    </div>
   {{ end }}
 {{ end }}
 {{ end }}
-</table></form></div>
+</form></div>
 {{ end }}

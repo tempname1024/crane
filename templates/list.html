@@ -1,29 +1,26 @@
 {{ define "list" }}
-<table summary='paper list' class='list nowrap'>
+<div class='papers nowrap list'>
 {{ range $category, $papers := .Papers }}
   {{ $paperCount := len $papers }}
   {{ if ge $paperCount 1 }}
-  <tr class='nohover-highlight'>
-		<td colspan='4' class='papersection'>{{ $category }}</td>
-	</tr>
+  <div class="papersection">
+  <span class='papersection' id='{{ $category }}'>{{ $category }}</span>
+  </div>
   {{ range $path, $paper := $papers }}
-  <tr>
+    <div class="paper">
     {{ if $paper.Meta.Title }}
-    <td class="sublevel-paper title"><a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a></td>
+    <span class="title"><a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a></span><br>
     {{ else }}
-    <td class="sublevel-paper title"><a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a></td>
+    <span class="title"><a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a></span><br>
     {{ end }}
-  </tr>
-  <tr>
+
     {{ if $paper.Meta.Title }}
-    <td class="sub">{{ $paper.Meta.PubYear }} - {{ $contCount := len $paper.Meta.Contributors }} {{ if gt $contCount 0 }}{{ $author := index $paper.Meta.Contributors 0 }}{{ $author.LastName }}{{ if gt $contCount 1 }} et al.{{ end }}{{ end }} - <a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a> - {{ $paper.Meta.Journal }}</td>
-    {{ else }}
-    <td></td>
+    <span class="authors">{{ range $index, $contributor := $paper.Meta.Contributors }}{{if $index}}, {{end}}{{ $contributor.FirstName }} {{ $contributor.LastName }}{{end}}</span><br>
+    <span class="year">{{ $paper.Meta.PubYear }}</span> - <span class="doi"><a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a></span> - <span class="journal">{{ $paper.Meta.Journal }}</span>
     {{ end }}
-  </tr>
+    </div>
   {{ end }}
-  {{ else }}
   {{ end }}
 {{ end }}
-</table>
+</div>
 {{ end }}

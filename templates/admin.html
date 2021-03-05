@@ -38,6 +38,9 @@
   {{ end }}
 </table>
 {{ if gt $categoryCount 0 }}
+<div class="cat">
+  <span>{{ range $category, $paper := .Papers }}[<a href="#{{ $category }}">{{ $category }}</a>] {{ end }}</span>
+</div>
 <table class='tabs'>
   <tr>
     <td><a class='active' href='/admin/edit/'>Edit</a></td>

@@ -4,10 +4,13 @@
 </table>
 {{ $categoryCount := len .Papers }}
 {{ if gt $categoryCount 0 }}
+<div class="cat">
+  <span>{{ range $category, $paper := .Papers }}[<a href="#{{ $category }}">{{ $category }}</a>] {{ end }}</span>
+</div>
 <table class='tabs'>
   <td><a class='active' href='/admin/'>Manage</a></td>
 </table>
-<div class='content'>
+<div class="content">
 {{ block "list" . }}{{ end }}
 </div>
 {{ else }}
