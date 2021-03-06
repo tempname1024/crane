@@ -462,9 +462,6 @@ func (papers *Papers) ProcessAddPaperInput(category string,
 		if err != nil {
 			return &Paper{}, err
 		}
-
-		// if URL is direct link we'll download it directly, skipping
-		// metadata processing
 		if resp.Header.Get("Content-Type") == "application/pdf" {
 			paper, err := papers.NewPaperFromDirectLink(resp, category)
 			if err != nil {
@@ -472,19 +469,16 @@ func (papers *Papers) ProcessAddPaperInput(category string,
 			}
 			return paper, nil
 		}
-
-		// URL was not a PDF, parse the page directly for a DOI
 		doi = getDOIFromPage(resp)
+
+		// last resort, pass url to sci-hub and see if they know the DOI
 		if doi == nil {
 			resp, err = makeRequest(client, scihubURL+input)
 			if err != nil {
-				return &Paper{}, fmt.Errorf("%q: DOI not found on page", input)
+				return &Paper{}, err
 			}
 			doi = getDOIFromPage(resp)
 		}
-
-		// input was a URL but we've exhausted download routes (no DOI, no
-		// direct link...), abort
 		if doi == nil {
 			return &Paper{}, fmt.Errorf("%q: DOI not found on page", input)
 		}
@@ -495,11 +489,20 @@ func (papers *Papers) ProcessAddPaperInput(category string,
 			return &Paper{}, fmt.Errorf("%q is not a valid DOI or URL\n", input)
 		}
 	}
-
-	// we have a DOI by this point, cool--download the paper
 	paper, err := papers.NewPaperFromDOI(doi, category)
 	if err != nil {
-		return &Paper{}, err
+		if u, _ := url.Parse(input); u.Scheme != "" && u.Host != "" {
+			// try to force sci-hub to cache paper if dl failed and input was
+			// URL, retry
+			makeRequest(client, scihubURL+input)
+			paper, err := papers.NewPaperFromDOI(doi, category)
+			if err != nil {
+				return &Paper{}, err
+			}
+			return paper, nil
+		} else {
+			return &Paper{}, err
+		}
 	}
 	return paper, nil
 }
