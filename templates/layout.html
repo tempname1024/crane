@@ -45,12 +45,22 @@ div#crane table#header input[type="text"] {
   transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
 
-div#crane table#header .btn {
+div#crane .btn {
+  font-family: inherit;
+  font-size: 85%;
+  color: black;
+  text-overflow: unset;
+  display: inline;
+  background: #e9ecef;
+  border: #343a40 1px solid;
+  padding-right: 8px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  border-radius: 0;
   display: inline-block;
-  margin-bottom: 1rem;
 }
 
-div#crane .btn {
+div#crane .sel {
   font-family: inherit;
   font-size: 85%;
   color: black;
@@ -60,12 +70,7 @@ div#crane .btn {
   border: #343a40 1px solid;
   padding: 2px 8px;
   border-radius: 0;
-}
-
-.btn-download
-{
-  padding-top: 3px;
-  padding-bottom: 3px;
+  display: inline-block;
 }
 
 div#crane table {
@@ -82,6 +87,7 @@ div#crane table#header td.inpt {
   white-space: nowrap;
   border-collapse: collapse;
   color: #000;
+  padding-bottom: 1em;
 }
 
 div#crane table#header td.main {
@@ -122,10 +128,6 @@ div#crane table.tabs td a {
   padding: 2px 0.75em;
   color: black;
   background-color: #ccc;
-}
-
-div#crane table.tabls td.form {
-  text-align: right;
 }
 
 div#crane table.tabs td.form form {
