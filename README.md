@@ -1,11 +1,9 @@
 # Crane
 
-Crane is a literature download and organization web service with support for
-paper download and metadata retrieval.
-
-Paper and metadata download is possible for (nearly) every open-access journal
-which satisfies citation HTML <meta> tags, journals supported by sci-hub, and
-direct download links.
+Crane is a literature download and organization web service. Paper and metadata
+download is possible for (nearly) every open-access journal which satisfies
+citation HTML `<meta>` tags, journals supported by sci-hub, and direct download
+links.
 
 Goals of the project are to be minimal, support data portability (no databases
 or app-proprietary formats), and secure. Paper "categories" are simply
