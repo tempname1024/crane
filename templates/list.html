@@ -14,10 +14,20 @@
     <span class="title"><a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a></span><br>
     {{ end }}
 
-    {{ if $paper.Meta.Title }}
+    {{ $contCount := len $paper.Meta.Contributors }}{{ if ge $contCount 1 }}
     <span class="authors">{{ range $index, $contributor := $paper.Meta.Contributors }}{{if $index}}, {{end}}{{ $contributor.FirstName }} {{ $contributor.LastName }}{{end}}</span><br>
-    <span class="year">{{ $paper.Meta.PubYear }}</span> - <span class="doi"><a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a></span> - <span class="journal">{{ $paper.Meta.Journal }}</span>
     {{ end }}
+
+    {{ $hasVal := false }}
+    {{ if $paper.Meta.PubYear }}{{ $hasVal = true }}<span class="year">{{ $paper.Meta.PubYear }}</span>{{ end }}
+
+    {{ if $paper.Meta.DOI }}{{ if $hasVal }}- {{end}}<span class="doi"><a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a></span>
+
+    {{ else if $paper.Meta.ArxivID }}{{ if $hasVal }}- {{ end }}<span class="doi"><a href="https://arxiv.org/abs/{{ $paper.Meta.ArxivID }}">{{ $paper.Meta.ArxivID }}</span>
+    {{ else if $paper.Meta.Resource }}{{ if $hasVal }}- {{ end }}<span class="doi"><a href="{{ $paper.Meta.Resource }}">{{ $paper.Meta.Resource }}</a></span>{{ end }}
+
+    {{ if $paper.Meta.Journal }}{{ if $hasVal }}- {{ end }}<span class="journal">{{ $paper.Meta.Journal }}</span>{{ end }}
+
     </div>
   {{ end }}
   {{ end }}

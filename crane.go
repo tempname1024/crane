@@ -7,7 +7,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"mime"
@@ -53,6 +52,7 @@ type Meta struct {
 	FirstPage    string        `xml:"doi_record>crossref>journal>journal_article>pages>first_page"`
 	LastPage     string        `xml:"doi_record>crossref>journal>journal_article>pages>last_page"`
 	DOI          string        `xml:"doi_record>crossref>journal>journal_article>doi_data>doi"`
+	ArxivID      string        `xml:"doi_record>crossref>journal>journal_article>arxiv_data>arxiv_id"`
 	Resource     string        `xml:"doi_record>crossref>journal>journal_article>doi_data>resource"`
 }
 
@@ -76,8 +76,8 @@ type Resp struct {
 }
 
 // getPaperFileNameFromMeta returns the built filename (absent an extension)
-// from doi.org metadata, consisting of the lowercase last name of the first
-// author followed by the year of publication (e.g. doe2020)
+// from metadata, consisting of the lowercase last name of the first author
+// followed by the year of publication (e.g. doe2020)
 func getPaperFileNameFromMeta(p *Meta) string {
 	var mainAuthor string
 	for _, contributor := range p.Contributors {
@@ -111,23 +111,26 @@ func getPaperFileNameFromResp(resp *http.Response) string {
 		filename = strings.TrimSuffix(filepath.Base(u.Path), "/")
 	}
 	filename = strings.TrimSuffix(filename, ".pdf")
+	filename = strings.Replace(filename, "..", "", -1)
+	filename = strings.Replace(filename, "/", "", -1)
 	return filename
 }
 
 // getUniqueName ensures a paper name is unique, appending "-$ext" until
 // a unique name is found and returned
 func (papers *Papers) getUniqueName(category string, name string) string {
+	newName := name
 	ext := 2
 	for {
-		key := filepath.Join(category, name+".pdf")
+		key := filepath.Join(category, newName+".pdf")
 		if _, exists := papers.List[category][key]; exists != true {
 			break
 		} else {
-			name = fmt.Sprint(name, "-", ext)
+			newName = fmt.Sprint(name, "-", ext)
 			ext++
 		}
 	}
-	return name
+	return newName
 }
 
 // findPapersWalk is a WalkFunc passed to filepath.Walk() to process papers
@@ -205,69 +208,32 @@ func (papers *Papers) PopulatePapers() error {
 	return nil
 }
 
-// NewPaperFromDirectLink contains routines used to retrieve papers from remote
-// endpoints provided a direct link's http.Response
-func (papers *Papers) NewPaperFromDirectLink(resp *http.Response,
-	category string) (*Paper, error) {
-	tmpPDF, err := ioutil.TempFile("", "tmp-*.pdf")
-	if err != nil {
-		return &Paper{}, err
-	}
-	err = saveRespBody(resp, tmpPDF.Name())
-	if err != nil {
-		return &Paper{}, err
-	}
-	if err := tmpPDF.Close(); err != nil {
-		return &Paper{}, err
-	}
-	defer os.Remove(tmpPDF.Name())
-
-	var paper Paper
-	paper.PaperName = papers.getUniqueName(category,
-		getPaperFileNameFromResp(resp))
-
-	if err != nil {
-		return &Paper{}, err
-	}
-	paper.PaperPath = filepath.Join(papers.Path,
-		filepath.Join(category, paper.PaperName+".pdf"))
-
-	if err := renameFile(tmpPDF.Name(), paper.PaperPath); err != nil {
-		return nil, err
-	}
-	papers.List[category][filepath.Join(category,
-		paper.PaperName+".pdf")] = &paper
-	return &paper, nil
-}
-
 // NewPaperFromDOI contains routines used to retrieve papers from remote
 // endpoints provided a DOI
 func (papers *Papers) NewPaperFromDOI(doi []byte, category string) (*Paper,
 	error) {
-	tmpXML, err := getMetaFromDOI(client, doi)
-	if err != nil {
-		return nil, err
-	}
-	defer os.Remove(tmpXML)
-
-	// open temporary XML file for parsing
-	f, err := os.Open(tmpXML)
-	if err != nil {
-		return nil, err
-	}
-	r := bufio.NewReader(f)
-	d := xml.NewDecoder(r)
-
-	// populate p struct with values derived from doi.org metadata
 	var paper Paper
-	if err := d.Decode(&paper.Meta); err != nil {
-		return nil, err
-	}
-	if err := f.Close(); err != nil {
+
+	meta, err := getMetaFromDOI(client, doi)
+	if err != nil {
 		return nil, err
 	}
 
-	name := getPaperFileNameFromMeta(&paper.Meta) // doe2020
+	// create a temporary file to store XML stream
+	tmpXML, err := ioutil.TempFile("", "tmp-*.meta.xml")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmpXML.Name())
+
+	e := xml.NewEncoder(tmpXML)
+	err = e.Encode(meta)
+	if err != nil {
+		return nil, err
+	}
+	tmpXML.Close()
+
+	name := getPaperFileNameFromMeta(meta) // doe2020
 	if name == "" {
 		// last-resort condition if metadata lacking author or publication year
 		name = strings.Replace(string(doi), "..", "", -1)
@@ -280,7 +246,7 @@ func (papers *Papers) NewPaperFromDOI(doi []byte, category string) (*Paper,
 	// if not matching, check if DOIs match (genuine duplicate)
 	if name != uniqueName {
 		key := filepath.Join(category, name+".pdf")
-		if paper.Meta.DOI == papers.List[category][key].Meta.DOI {
+		if meta.DOI == papers.List[category][key].Meta.DOI {
 			return nil, fmt.Errorf("paper %q with DOI %q already downloaded",
 				name, string(doi))
 		}
@@ -306,7 +272,47 @@ func (papers *Papers) NewPaperFromDOI(doi []byte, category string) (*Paper,
 	if err := renameFile(tmpPDF, paper.PaperPath); err != nil {
 		return nil, err
 	}
-	if err := renameFile(tmpXML, paper.MetaPath); err != nil {
+	if err := renameFile(tmpXML.Name(), paper.MetaPath); err != nil {
+		return nil, err
+	}
+	paper.Meta = *meta
+	papers.List[category][filepath.Join(category,
+		paper.PaperName+".pdf")] = &paper
+	return &paper, nil
+}
+
+// NewPaperFromDirectLink contains routines used to retrieve papers from remote
+// endpoints provided a direct link's http.Response and/or optional metadata
+func (papers *Papers) NewPaperFromDirectLink(resp *http.Response, meta *Meta,
+	category string) (*Paper, error) {
+	tmpPDF, err := ioutil.TempFile("", "tmp-*.pdf")
+	if err != nil {
+		return &Paper{}, err
+	}
+	err = saveRespBody(resp, tmpPDF.Name())
+	if err != nil {
+		return &Paper{}, err
+	}
+	if err := tmpPDF.Close(); err != nil {
+		return &Paper{}, err
+	}
+	defer os.Remove(tmpPDF.Name())
+
+	var paper Paper
+	paper.PaperName = papers.getUniqueName(category,
+		getPaperFileNameFromMeta(meta))
+	if paper.PaperName == "" {
+		paper.PaperName = papers.getUniqueName(category,
+			getPaperFileNameFromResp(resp))
+	}
+
+	if err != nil {
+		return &Paper{}, err
+	}
+	paper.PaperPath = filepath.Join(papers.Path,
+		filepath.Join(category, paper.PaperName+".pdf"))
+
+	if err := renameFile(tmpPDF.Name(), paper.PaperPath); err != nil {
 		return nil, err
 	}
 	papers.List[category][filepath.Join(category,
@@ -454,275 +460,73 @@ func (papers *Papers) RenameCategory(oldCategory string,
 // a DOI and initiate paper download
 func (papers *Papers) ProcessAddPaperInput(category string,
 	input string) (*Paper, error) {
-	var doi []byte
-
-	// URL processing routine; download paper directly or check page for a DOI
-	if u, _ := url.Parse(input); u.Scheme != "" && u.Host != "" {
+	if strings.HasPrefix(input, "http") {
 		resp, err := makeRequest(client, input)
 		if err != nil {
 			return &Paper{}, err
 		}
 		if resp.Header.Get("Content-Type") == "application/pdf" {
-			paper, err := papers.NewPaperFromDirectLink(resp, category)
+			paper, err := papers.NewPaperFromDirectLink(resp, &Meta{}, category)
 			if err != nil {
 				return &Paper{}, err
 			}
 			return paper, nil
 		}
-		doi = getDOIFromPage(resp)
 
-		// last resort, pass url to sci-hub and see if they know the DOI
-		if doi == nil {
-			resp, err = makeRequest(client, scihubURL+input)
-			if err != nil {
-				return &Paper{}, err
-			}
-			doi = getDOIFromPage(resp)
+		meta, err := getMetaFromCitation(resp)
+		if err != nil {
+			return nil, err
 		}
-		if doi == nil {
-			return &Paper{}, fmt.Errorf("%q: DOI not found on page", input)
+		if meta.Resource != "" {
+			resp, err := makeRequest(client, meta.Resource)
+			if err == nil && strings.HasPrefix(resp.Header.Get("Content-Type"), "application/pdf") {
+				paper, err := papers.NewPaperFromDirectLink(resp, meta, category)
+				if err != nil {
+					return nil, err
+				} else {
+					tmpXML, err := ioutil.TempFile("", "tmp-*.meta.xml")
+					if err != nil {
+						return nil, err
+					}
+					defer os.Remove(tmpXML.Name())
+
+					e := xml.NewEncoder(tmpXML)
+					err = e.Encode(meta)
+					if err != nil {
+						return nil, err
+					}
+					tmpXML.Close()
+
+					paper.MetaPath = filepath.Join(filepath.Join(papers.Path,
+						category), paper.PaperName+".meta.xml")
+					if err := renameFile(tmpXML.Name(), paper.MetaPath); err != nil {
+						return nil, err
+					}
+
+					paper.Meta = *meta
+					return paper, nil
+				}
+			}
+		}
+		if meta.DOI != "" {
+			paper, err := papers.NewPaperFromDOI([]byte(meta.DOI), category)
+			if err != nil {
+				return nil, err
+			}
+			return paper, nil
+		} else {
+			return &Paper{}, fmt.Errorf("%q: DOI could not be discovered", input)
 		}
 	} else {
-		// input was not a URL, hopefully it has or contains a DOI
-		doi = getDOIFromBytes([]byte(input))
+		doi := getDOIFromBytes([]byte(input))
 		if doi == nil {
 			return &Paper{}, fmt.Errorf("%q is not a valid DOI or URL\n", input)
 		}
-	}
-	paper, err := papers.NewPaperFromDOI(doi, category)
-	if err != nil {
-		if u, _ := url.Parse(input); u.Scheme != "" && u.Host != "" {
-			// try to force sci-hub to cache paper if dl failed and input was
-			// URL, retry
-			makeRequest(client, scihubURL+input)
-			paper, err := papers.NewPaperFromDOI(doi, category)
-			if err != nil {
-				return &Paper{}, err
-			}
+		if paper, err := papers.NewPaperFromDOI(doi, category); err != nil {
+			return nil, fmt.Errorf("%q: %v", input, err)
+		} else {
 			return paper, nil
-		} else {
-			return &Paper{}, err
 		}
-	}
-	return paper, nil
-}
-
-// IndexHandler renders the index of papers stored in papers.Path
-func (papers *Papers) IndexHandler(w http.ResponseWriter, r *http.Request) {
-	// catch-all for paths unhandled by direct http.HandleFunc calls
-	if r.URL.Path != "/" {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-	t, _ := template.ParseFiles(filepath.Join(templateDir, "layout.html"),
-		filepath.Join(templateDir, "index.html"),
-		filepath.Join(templateDir, "list.html"),
-	)
-	res := Resp{
-		Papers: papers.List,
-	}
-	t.Execute(w, &res)
-}
-
-// AdminHandler renders the index of papers stored in papers.Path with
-// additional forms to modify the collection (add, delete, rename...)
-func (papers *Papers) AdminHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles(filepath.Join(templateDir, "admin.html"),
-		filepath.Join(templateDir, "layout.html"),
-		filepath.Join(templateDir, "list.html"),
-	)
-	res := Resp{
-		Papers: papers.List,
-	}
-	if user != "" && pass != "" {
-		username, password, ok := r.BasicAuth()
-		if ok && user == username && pass == password {
-			t.Execute(w, &res)
-		} else {
-			w.Header().Add("WWW-Authenticate",
-				`Basic realm="Please authenticate"`)
-			http.Error(w, http.StatusText(http.StatusUnauthorized),
-				http.StatusUnauthorized)
-		}
-	} else {
-		t.Execute(w, &res)
-	}
-}
-
-// EditHandler renders the index of papers stored in papers.Path, prefixing
-// a checkbox to each unique paper and category for modification
-func (papers *Papers) EditHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles(filepath.Join(templateDir, "admin-edit.html"),
-		filepath.Join(templateDir, "layout.html"),
-		filepath.Join(templateDir, "list.html"),
-	)
-	res := Resp{
-		Papers: papers.List,
-	}
-	if user != "" && pass != "" {
-		username, password, ok := r.BasicAuth()
-		if !ok || user != username || pass != password {
-			w.Header().Add("WWW-Authenticate",
-				`Basic realm="Please authenticate"`)
-			http.Error(w, http.StatusText(http.StatusUnauthorized),
-				http.StatusUnauthorized)
-			return
-		}
-	}
-	if err := r.ParseForm(); err != nil {
-		res.Status = err.Error()
-		t.Execute(w, &res)
-		return
-	}
-
-	if action := r.FormValue("action"); action == "delete" {
-		for _, paper := range r.Form["paper"] {
-			if res.Status != "" {
-				break
-			}
-			if err := papers.DeletePaper(paper); err != nil {
-				res.Status = err.Error()
-			}
-		}
-		for _, category := range r.Form["category"] {
-			if res.Status != "" {
-				break
-			}
-			if err := papers.DeleteCategory(category); err != nil {
-				res.Status = err.Error()
-			}
-		}
-		if res.Status == "" {
-			res.Status = "delete successful"
-		}
-	} else if strings.HasPrefix(action, "move") {
-		destCategory := strings.SplitN(action, "move-", 2)[1]
-		for _, paper := range r.Form["paper"] {
-			if res.Status != "" {
-				break
-			}
-			if err := papers.MovePaper(paper, destCategory); err != nil {
-				res.Status = err.Error()
-			}
-		}
-		if res.Status == "" {
-			res.Status = "move successful"
-		}
-	} else {
-		rc := r.FormValue("rename-category")
-		rt := r.FormValue("rename-to")
-		if rc != "" && rt != "" {
-			// ensure filesystem safety of category names
-			rc = strings.Trim(strings.Replace(rc, "..", "", -1), "/.")
-			rt = strings.Trim(strings.Replace(rt, "..", "", -1), "/.")
-
-			if err := papers.RenameCategory(rc, rt); err != nil {
-				res.Status = err.Error()
-			}
-			if res.Status == "" {
-				res.Status = "rename successful"
-			}
-		}
-	}
-	t.Execute(w, &res)
-}
-
-// AddHandler provides support for new paper processing and category addition
-func (papers *Papers) AddHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles(filepath.Join(templateDir, "admin.html"),
-		filepath.Join(templateDir, "layout.html"),
-		filepath.Join(templateDir, "list.html"),
-	)
-	if user != "" && pass != "" {
-		username, password, ok := r.BasicAuth()
-		if !ok || user != username || pass != password {
-			w.Header().Add("WWW-Authenticate",
-				`Basic realm="Please authenticate"`)
-			http.Error(w, http.StatusText(http.StatusUnauthorized),
-				http.StatusUnauthorized)
-			return
-		}
-	}
-	p := r.FormValue("dl-paper")
-	c := r.FormValue("dl-category")
-	nc := r.FormValue("new-category")
-
-	// sanitize input; we use the category to build the path used to save
-	// papers
-	nc = strings.Trim(strings.Replace(nc, "..", "", -1), "/.")
-	res := Resp{Papers: papers.List}
-
-	// paper download, both required fields populated
-	if len(strings.TrimSpace(p)) > 0 && len(strings.TrimSpace(c)) > 0 {
-		if paper, err := papers.ProcessAddPaperInput(c, p); err != nil {
-			res.Status = err.Error()
-		} else {
-			if paper.Meta.Title != "" {
-				res.Status = fmt.Sprintf("%q downloaded successfully",
-					paper.Meta.Title)
-			} else {
-				res.Status = fmt.Sprintf("%q downloaded successfully",
-					paper.PaperName)
-			}
-			res.LastPaperDL = strings.TrimPrefix(paper.PaperPath,
-				papers.Path+"/")
-		}
-		res.LastUsedCategory = c
-	} else if len(strings.TrimSpace(nc)) > 0 {
-		// accounts for nested category addition; e.g. "foo/bar/baz" where
-		// "foo/bar" and/or "foo" do not already exist
-		n := nc
-		for n != "." {
-			_, exists := papers.List[n]
-			if exists == true {
-				res.Status = fmt.Sprintf("category %q already exists", n)
-			} else if err := os.MkdirAll(filepath.Join(papers.Path, n),
-				os.ModePerm); err != nil {
-				res.Status = fmt.Sprintf(err.Error())
-			} else {
-				papers.List[n] = make(map[string]*Paper)
-			}
-			if res.Status != "" {
-				break
-			}
-			res.LastUsedCategory = n
-			n = filepath.Dir(n)
-		}
-		if res.Status == "" {
-			res.Status = fmt.Sprintf("category %q added successfully", nc)
-		}
-	}
-	t.Execute(w, &res)
-}
-
-// DownloadHandler serves saved papers up for download
-func (papers *Papers) DownloadHandler(w http.ResponseWriter, r *http.Request) {
-	paper := strings.TrimPrefix(r.URL.Path, "/download/")
-	category := filepath.Dir(paper)
-
-	// return 404 if the provided paper category or paper key do not exist in
-	// the papers set
-	if _, exists := papers.List[category]; exists == false {
-		http.Error(w, http.StatusText(http.StatusNotFound),
-			http.StatusNotFound)
-		return
-	}
-	if _, exists := papers.List[category][paper]; exists == false {
-		http.Error(w, http.StatusText(http.StatusNotFound),
-			http.StatusNotFound)
-		return
-	}
-
-	// ensure the paper (PaperPath) actually exists on the filesystem
-	i, err := os.Stat(papers.List[category][paper].PaperPath)
-	if os.IsNotExist(err) {
-		http.Error(w, http.StatusText(http.StatusNotFound),
-			http.StatusNotFound)
-	} else if i.IsDir() {
-		http.Error(w, http.StatusText(http.StatusForbidden),
-			http.StatusForbidden)
-	} else {
-		http.ServeFile(w, r, papers.List[category][paper].PaperPath)
 	}
 }
 

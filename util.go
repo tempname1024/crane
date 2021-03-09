@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,6 +10,11 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
+	"golang.org/x/net/html"
 )
 
 var privateIPBlocks []*net.IPNet
@@ -71,21 +77,80 @@ func makeRequest(client *http.Client, u string) (*http.Response, error) {
 	return resp, nil
 }
 
-// getDOIFromPage returns the parsed DOI from the body of the *http.Response
-// provided
-func getDOIFromPage(resp *http.Response) []byte {
-	defer resp.Body.Close()
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		doi := getDOIFromBytes(scanner.Bytes())
-		if doi != nil {
-			return doi
+// getMetaFromCitation parses an *http.Response for <meta> tags to populate a
+// paper's Meta attributes and returns the paper
+func getMetaFromCitation(resp *http.Response) (*Meta, error) {
+	doc, err := html.Parse(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var meta Meta
+	var f func(*html.Node)
+	f = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "meta" {
+			var name string
+			var cont string
+			for _, a := range n.Attr {
+				if a.Key == "name" || a.Key == "property" {
+					name = a.Val
+				} else if a.Key == "content" {
+					cont = a.Val
+				}
+			}
+			switch name {
+				case "citation_title":
+					meta.Title = cont
+				case "citation_author":
+					var c Contributor
+					// Doe, Jain
+					if strings.Contains(cont, ",") {
+						v := strings.Split(cont, ", ")
+						c.FirstName = strings.Join(v[1:], " ")
+						c.LastName = v[0]
+					// Jain Doe
+					} else {
+						v := strings.Split(cont, " ")
+						c.FirstName = strings.Join(v[:len(v)-1], " ")
+						c.LastName = strings.Join(v[len(v)-1:], " ")
+					}
+					c.Role = "author"
+					if len(meta.Contributors) > 0 {
+						c.Sequence = "additional"
+					} else {
+						c.Sequence = "first"
+					}
+					meta.Contributors = append(meta.Contributors, c)
+				case "citation_date", "citation_publication_date":
+					var formats = []string{"2006-01-02", "2006/01/02", "2006"}
+					for _, format := range formats {
+						t, err := time.Parse(format, cont)
+						if err == nil {
+							meta.PubMonth = t.Month().String()
+							meta.PubYear = strconv.Itoa(t.Year())
+							break
+						}
+					}
+				case "citation_journal_title", "og:site_name", "DC.Publisher":
+					meta.Journal = cont
+				case "citation_firstpage":
+					meta.FirstPage = cont
+				case "citation_lastpage":
+					meta.LastPage = cont
+				case "citation_doi":
+					meta.DOI = cont
+				case "citation_arxiv_id":
+					meta.ArxivID = cont
+				case "citation_pdf_url":
+					meta.Resource = cont
+				}
 		}
-		if err := scanner.Err(); err != nil {
-			return nil
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
 		}
 	}
-	return nil
+	f(doc)
+	return &meta, nil
 }
 
 // renameFile is an alternative to os.Rename which supports moving files
@@ -148,41 +213,34 @@ func copyFile(src, dst string) (err error) {
 }
 
 // getMetaFromDOI saves doi.org API data to TempFile and returns its path
-func getMetaFromDOI(client *http.Client, doi []byte) (string, error) {
+func getMetaFromDOI(client *http.Client, doi []byte) (*Meta, error) {
 	u := "https://doi.org/" + string(doi)
 	req, err := http.NewRequest("GET", u, nil)
 
 	req.Header.Add("Accept", "application/vnd.crossref.unixref+xml;q=1,application/rdf+xml;q=0.5")
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%q: status code not OK, DOI invalid?", u)
+		return nil, fmt.Errorf("%q: failed to get metadata", u)
 	}
 	if resp.Header.Get("Content-Type") != "application/vnd.crossref.unixref+xml" {
-		return "", fmt.Errorf("%q: content-type not application/vnd.crossref.unixref+xml", u)
+		return nil, fmt.Errorf("%q: content-type not application/vnd.crossref.unixref+xml", u)
 	}
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+	r := bufio.NewReader(resp.Body)
+	d := xml.NewDecoder(r)
 
-	// create a temporary file to store XML stream
-	tmpXML, err := ioutil.TempFile("", "tmp-*.meta.xml")
-	if err != nil {
-		return "", err
+	// populate p struct with values derived from doi.org metadata
+	var meta Meta
+	if err := d.Decode(&meta); err != nil {
+		return nil, err
 	}
-
-	// incrementally save XML data to the temporary file; saves memory using
-	// the filesystem instead of passing around buffers
-	if err := saveRespBody(resp, tmpXML.Name()); err != nil {
-		return "", err
-	}
-	if err := tmpXML.Close(); err != nil {
-		return "", err
-	}
-	return tmpXML.Name(), nil
+	return &meta, nil
 }
 
 // getPaper saves makes an outbound request to a remote resource and saves the
