@@ -20,7 +20,7 @@
     <td class='inpt'>
       <form method='post' action='/admin/add/'>
         <input type='text' name='dl-paper' placeholder="URL or DOI" value=''/>
-        <select class="btn" name="dl-category" id="category">
+        <select class="sel" name="dl-category" id="category">
           {{ $lastUsedCategory := .LastUsedCategory }}
           {{ if $lastUsedCategory }}
           <option value="{{ .LastUsedCategory }}">{{ $lastUsedCategory }}</option>
@@ -31,7 +31,7 @@
           {{ end }}
           {{ end }}
         </select>
-        <input class='btn' type="submit" value="Download" />
+        <input class="btn" type="submit" value="Download" />
       </form>
     </td>
   </tr>

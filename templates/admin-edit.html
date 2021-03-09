@@ -8,12 +8,12 @@
     <td class='inpt'>
       <form method='post' action='/admin/edit/'>
         <input type="text" id="rename-category" name="rename-to" placeholder="Mathematics">
-        <select class="btn" name="rename-category" id="category">
+        <select class="sel" name="rename-category" id="category">
         {{ range $category, $papers := .Papers }}
         <option value="{{ $category }}">{{ $category }}</option>
         {{ end }}
         </select>
-        <input class='btn' type="submit" value="Rename Category">
+        <input class="btn" type="submit" value="Rename Category">
       </form>
     </td>
   {{ end }}
@@ -31,7 +31,7 @@
 {{ if gt $categoryCount 0 }}
 <form method='post' action='/admin/edit/'>
   <div class="action">
-  <select class="btn" name="action" id="Action">
+  <select class="sel" name="action" id="Action">
     <optgroup label="Action">
       <option value="delete">Delete</option>
     </optgroup>
@@ -41,7 +41,7 @@
       {{ end }}
     </optgroup>
   </select>
-  <input class='btn' type="submit" value="Save" />
+  <input class="btn" type="submit" value="Save" />
   </div>
 <div class='papers nowrap list'>
 {{ range $category, $papers := .Papers }}
