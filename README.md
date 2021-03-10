@@ -10,7 +10,7 @@ or app-proprietary formats), and secure. Paper "categories" are simply
 directories created on the filesystem, and paper metadata is derived from
 [doi.org](https://www.doi.org/) or `<meta>` tags and written to disk as XML.
 
-A screenshot of the admin interface can be [found here](screenshots/admin.png).
+A read-only demo instance can be [found here](https://r.jordan.im/).
 
 ## Installation
 
