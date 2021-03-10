@@ -73,6 +73,36 @@ div#crane .sel {
   display: inline-block;
 }
 
+#backToTop
+{
+  /* Position */
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 3rem;
+  height: 3rem;
+  z-index: 100;
+  text-align: center;
+
+  /* Font and Color */
+  font-size: 2rem;
+  font-weight: bolder;
+  color: #505050;
+  background: #D3D3D3;
+
+  /* Misc. Decoration */
+  border: 2px solid #D3D3D3;
+  border-radius: 25%;
+  text-decoration: none;
+  scroll-behavior: smooth;
+  opacity: 66%;
+}
+
+#backToTop:hover
+{
+  opacity: 100%;
+}
+
 div#crane table {
   border-collapse: collapse;
 }
@@ -233,5 +263,6 @@ div#crane div.footer a:hover {
 <div class='footer'><a href='https://git.jordan.im/crane'>crane</a></div>
 </div>
 </center>
+<a class="btn" id="backToTop" href="#crane">&#x25B2;</a>
 </body>
 </html>
