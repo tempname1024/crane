@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"golang.org/x/net/publicsuffix"
 )
@@ -64,12 +65,13 @@ type Paper struct {
 }
 
 type Papers struct {
+	sync.RWMutex
 	List map[string]map[string]*Paper
 	Path string
 }
 
 type Resp struct {
-	Papers           map[string]map[string]*Paper
+	Papers           Papers
 	Status           string
 	LastPaperDL      string
 	LastUsedCategory string
@@ -121,6 +123,7 @@ func getPaperFileNameFromResp(resp *http.Response) string {
 func (papers *Papers) getUniqueName(category string, name string) string {
 	newName := name
 	ext := 2
+	papers.RLock()
 	for {
 		key := filepath.Join(category, newName+".pdf")
 		if _, exists := papers.List[category][key]; exists != true {
@@ -130,6 +133,7 @@ func (papers *Papers) getUniqueName(category string, name string) string {
 			ext++
 		}
 	}
+	papers.RUnlock()
 	return newName
 }
 
@@ -141,6 +145,9 @@ func (papers *Papers) findPapersWalk(path string, info os.FileInfo,
 	if p, _ := filepath.Abs(path); p == papers.Path {
 		return nil
 	}
+
+	papers.Lock()
+	defer papers.Unlock()
 
 	// derive category name (e.g. Mathematics) from directory name; used as key
 	var category string
@@ -246,10 +253,12 @@ func (papers *Papers) NewPaperFromDOI(doi []byte, category string) (*Paper,
 	// if not matching, check if DOIs match (genuine duplicate)
 	if name != uniqueName {
 		key := filepath.Join(category, name+".pdf")
+		papers.RLock()
 		if meta.DOI == papers.List[category][key].Meta.DOI {
 			return nil, fmt.Errorf("paper %q with DOI %q already downloaded",
 				name, string(doi))
 		}
+		papers.RUnlock()
 	}
 
 	paper.PaperName = uniqueName
@@ -276,8 +285,11 @@ func (papers *Papers) NewPaperFromDOI(doi []byte, category string) (*Paper,
 		return nil, err
 	}
 	paper.Meta = *meta
+
+	papers.Lock()
 	papers.List[category][filepath.Join(category,
 		paper.PaperName+".pdf")] = &paper
+	papers.Unlock()
 	return &paper, nil
 }
 
@@ -315,8 +327,10 @@ func (papers *Papers) NewPaperFromDirectLink(resp *http.Response, meta *Meta,
 	if err := renameFile(tmpPDF.Name(), paper.PaperPath); err != nil {
 		return nil, err
 	}
+	papers.Lock()
 	papers.List[category][filepath.Join(category,
 		paper.PaperName+".pdf")] = &paper
+	papers.Unlock()
 	return &paper, nil
 }
 
@@ -325,6 +339,7 @@ func (papers *Papers) NewPaperFromDirectLink(resp *http.Response, meta *Meta,
 func (papers *Papers) DeletePaper(paper string) error {
 	// check if the category in which the paper is said to belong
 	// exists
+	papers.RLock()
 	category := filepath.Dir(paper)
 	if _, exists := papers.List[category]; exists != true {
 		return fmt.Errorf("category %q does not exist\n",
@@ -336,9 +351,11 @@ func (papers *Papers) DeletePaper(paper string) error {
 		return fmt.Errorf("paper %q does not exist in category %q\n", paper,
 			category)
 	}
+	papers.RUnlock()
 
 	// paper and category exists and the paper belongs to the provided
 	// category; remove it and its XML metadata
+	papers.Lock()
 	if err := os.Remove(papers.List[category][paper].PaperPath); err != nil {
 		return err
 	}
@@ -353,31 +370,40 @@ func (papers *Papers) DeletePaper(paper string) error {
 		}
 	}
 	delete(papers.List[category], paper)
+	papers.Unlock()
 	return nil
 }
 
 // DeleteCategory deletes a category and its contents from the filesystem and
 // the papers.List set
 func (papers *Papers) DeleteCategory(category string) error {
+	papers.RLock()
 	if _, exists := papers.List[category]; exists != true {
 		return fmt.Errorf("category %q does not exist in the set\n", category)
 	}
+	papers.RUnlock()
+
+	papers.Lock()
 	if err := os.RemoveAll(filepath.Join(papers.Path, category)); err != nil {
 		return err
 	}
+
 	// remove subcategories (nested directories) which exist under the primary
 	for key, _ := range papers.List {
 		if strings.HasPrefix(key, category+"/") {
 			delete(papers.List, key)
 		}
 	}
+
 	delete(papers.List, category)
+	papers.Unlock()
 	return nil
 }
 
 // MovePaper moves a paper to the destination category on the filesystem and
 // the papers.List set
 func (papers *Papers) MovePaper(paper string, category string) error {
+	papers.RLock()
 	prevCategory := filepath.Dir(paper)
 	if _, exists := papers.List[prevCategory]; exists != true {
 		return fmt.Errorf("category %q does not exist\n", prevCategory)
@@ -393,6 +419,9 @@ func (papers *Papers) MovePaper(paper string, category string) error {
 		return fmt.Errorf("paper %q exists in destination category %q\n",
 			paper, category)
 	}
+	papers.RUnlock()
+
+	papers.Lock()
 	paperDest := filepath.Join(filepath.Join(papers.Path, category),
 		papers.List[prevCategory][paper].PaperName+".pdf")
 	if err := os.Rename(papers.List[prevCategory][paper].PaperPath, paperDest);
@@ -422,12 +451,15 @@ func (papers *Papers) MovePaper(paper string, category string) error {
 		}
 	}
 	delete(papers.List[prevCategory], paper)
+
+	papers.Unlock()
 	return nil
 }
 
 // RenameCategory renames a category on the filesystem and the paper.List set
 func (papers *Papers) RenameCategory(oldCategory string,
 	newCategory string) error {
+	papers.RLock()
 	if _, exists := papers.List[oldCategory]; exists != true {
 		return fmt.Errorf("category %q does not exist in the set\n", oldCategory)
 	}
@@ -438,6 +470,9 @@ func (papers *Papers) RenameCategory(oldCategory string,
 		filepath.Join(papers.Path, newCategory)); err != nil {
 		return err
 	}
+	papers.RUnlock()
+
+	papers.Lock()
 	papers.List[newCategory] = make(map[string]*Paper)
 	for k, v := range papers.List[oldCategory] {
 		pPaperPath := filepath.Join(papers.Path, filepath.Join(newCategory,
@@ -453,6 +488,8 @@ func (papers *Papers) RenameCategory(oldCategory string,
 		}
 	}
 	delete(papers.List, oldCategory)
+
+	papers.Unlock()
 	return nil
 }
 

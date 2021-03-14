@@ -14,7 +14,7 @@
     </form>
 		</td>
 	</tr>
-  {{ $categoryCount := len .Papers }}
+  {{ $categoryCount := len .Papers.List }}
   {{ if gt $categoryCount 0 }}
 	<tr>
     <td class='inpt'>
@@ -25,7 +25,7 @@
           {{ if $lastUsedCategory }}
           <option value="{{ .LastUsedCategory }}">{{ $lastUsedCategory }}</option>
           {{ end }}
-          {{ range $category, $papers := .Papers }}
+          {{ range $category, $papers := .Papers.List }}
           {{ if ne $category $lastUsedCategory }}
           <option value="{{ $category }}">{{ $category }}</option>
           {{ end }}
@@ -39,7 +39,7 @@
 </table>
 {{ if gt $categoryCount 0 }}
 <div class="cat">
-  <span>{{ range $category, $paper := .Papers }}[<a href="#{{ $category }}">{{ $category }}</a>] {{ end }}</span>
+  <span>{{ range $category, $paper := .Papers.List }}[<a href="#{{ $category }}">{{ $category }}</a>] {{ end }}</span>
 </div>
 <table class='tabs'>
   <tr>

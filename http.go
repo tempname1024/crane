@@ -20,9 +20,12 @@ func (papers *Papers) IndexHandler(w http.ResponseWriter, r *http.Request) {
 		filepath.Join(templateDir, "index.html"),
 		filepath.Join(templateDir, "list.html"),
 	)
+	papers.RLock()
 	res := Resp{
-		Papers: papers.List,
+		Papers: *papers,
 	}
+	papers.RUnlock()
+
 	t.Execute(w, &res)
 }
 
@@ -33,9 +36,12 @@ func (papers *Papers) AdminHandler(w http.ResponseWriter, r *http.Request) {
 		filepath.Join(templateDir, "layout.html"),
 		filepath.Join(templateDir, "list.html"),
 	)
+	papers.RLock()
 	res := Resp{
-		Papers: papers.List,
+		Papers: *papers,
 	}
+	papers.RUnlock()
+
 	if user != "" && pass != "" {
 		username, password, ok := r.BasicAuth()
 		if ok && user == username && pass == password {
@@ -58,9 +64,12 @@ func (papers *Papers) EditHandler(w http.ResponseWriter, r *http.Request) {
 		filepath.Join(templateDir, "layout.html"),
 		filepath.Join(templateDir, "list.html"),
 	)
+	papers.RLock()
 	res := Resp{
-		Papers: papers.List,
+		Papers: *papers,
 	}
+	papers.RUnlock()
+
 	if user != "" && pass != "" {
 		username, password, ok := r.BasicAuth()
 		if !ok || user != username || pass != password {
@@ -152,7 +161,8 @@ func (papers *Papers) AddHandler(w http.ResponseWriter, r *http.Request) {
 	// sanitize input; we use the category to build the path used to save
 	// papers
 	nc = strings.Trim(strings.Replace(nc, "..", "", -1), "/.")
-	res := Resp{Papers: papers.List}
+
+	res := Resp{}
 
 	// paper download, both required fields populated
 	if len(strings.TrimSpace(p)) > 0 && len(strings.TrimSpace(c)) > 0 {
@@ -194,6 +204,10 @@ func (papers *Papers) AddHandler(w http.ResponseWriter, r *http.Request) {
 			res.Status = fmt.Sprintf("category %q added successfully", nc)
 		}
 	}
+	papers.RLock()
+	res.Papers = *papers
+	papers.RUnlock()
+
 	t.Execute(w, &res)
 }
 

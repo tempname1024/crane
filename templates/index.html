@@ -2,10 +2,10 @@
 {{ define "content" }}
 <table id='header'>
 </table>
-{{ $categoryCount := len .Papers }}
+{{ $categoryCount := len .Papers.List }}
 {{ if gt $categoryCount 0 }}
 <div class="cat">
-  <span>{{ range $category, $paper := .Papers }}[<a href="#{{ $category }}">{{ $category }}</a>] {{ end }}</span>
+  <span>{{ range $category, $paper := .Papers.List }}[<a href="#{{ $category }}">{{ $category }}</a>] {{ end }}</span>
 </div>
 <table class='tabs'>
   <td><a class='active' href='/admin/'>Manage</a></td>

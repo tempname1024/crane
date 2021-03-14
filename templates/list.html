@@ -1,6 +1,6 @@
 {{ define "list" }}
 <div class='papers nowrap list'>
-{{ range $category, $papers := .Papers }}
+{{ range $category, $papers := .Papers.List }}
   {{ $paperCount := len $papers }}
   {{ if ge $paperCount 1 }}
   <div class="papersection">
