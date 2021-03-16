@@ -267,16 +267,23 @@ func (papers *Papers) NewPaperFromDOI(doi []byte, category string) (*Paper,
 	paper.MetaPath = filepath.Join(filepath.Join(papers.Path, category),
 		paper.PaperName+".meta.xml")
 
-	// parse scihubURL and join it w/ the DOI (accounts for no trailing slash)
-	url, _ := url.Parse(scihubURL)
-	url.Path = filepath.Join(url.Path, string(doi))
-
 	// make outbound request to sci-hub, save paper to temporary location
-	tmpPDF, err := getPaper(client, url.String())
-	if err != nil {
-		return nil, err
-	}
+	url := scihubURL + string(doi)
+	tmpPDF, err := getPaper(client, url)
 	defer os.Remove(tmpPDF)
+	if err != nil {
+		// try passing resource URL (from doi.org metadata) to sci-hub instead
+		// (force cache)
+		if meta.Resource != "" {
+			url = scihubURL + meta.Resource
+			tmpPDF, err = getPaper(client, url)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
 
 	if err := renameFile(tmpPDF, paper.PaperPath); err != nil {
 		return nil, err
@@ -613,6 +620,9 @@ func main() {
 
 	papers.Path, _ = filepath.Abs(papers.Path)
 
+	if !strings.HasSuffix(scihubURL, "/") {
+		scihubURL = scihubURL + "/"
+	}
 	if _, err := os.Stat(papers.Path); os.IsNotExist(err) {
 		os.Mkdir(papers.Path, os.ModePerm)
 	}
