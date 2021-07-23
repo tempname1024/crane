@@ -18,11 +18,15 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/net/publicsuffix"
 )
 
-const MAX_SIZE int64 = 50000000 // max incoming HTTP request body size (50MB)
+const (
+	TIMEOUT  time.Duration = 25       // seconds to wait for an outbound HTTP request to complete
+	MAX_SIZE int64         = 50000000 // max incoming HTTP request body size (50MB)
+)
 
 var (
 	client      *http.Client
@@ -431,8 +435,7 @@ func (papers *Papers) MovePaper(paper string, category string) error {
 	papers.Lock()
 	paperDest := filepath.Join(filepath.Join(papers.Path, category),
 		papers.List[prevCategory][paper].PaperName+".pdf")
-	if err := os.Rename(papers.List[prevCategory][paper].PaperPath, paperDest);
-		err != nil {
+	if err := os.Rename(papers.List[prevCategory][paper].PaperPath, paperDest); err != nil {
 		return err
 	}
 
@@ -604,7 +607,10 @@ func main() {
 		}
 		return conn, err
 	}
-	client = &http.Client{Jar: cookies}
+	client = &http.Client{
+		Jar:     cookies,
+		Timeout: TIMEOUT * time.Second,
+	}
 
 	var papers Papers
 	papers.List = make(map[string]map[string]*Paper)
