@@ -8,7 +8,9 @@
   <span>{{ range $category, $paper := .Papers.List }}[<a href="#{{ $category }}">{{ $category }}</a>] {{ end }}</span>
 </div>
 <table class='tabs'>
-  <td><a class='active' href='/admin/'>Manage</a></td>
+  <tr>
+    <td><a class='active' href='/admin/'>Manage</a></td>
+  </tr>
 </table>
 <div class="content">
 {{ block "list" . }}{{ end }}
