@@ -5,7 +5,7 @@
 {{ $categoryCount := len .Papers.List }}
 {{ if gt $categoryCount 0 }}
 <div class="cat">
-  <span>{{ range $category, $paper := .Papers.List }}[<a href="#{{ $category }}">{{ $category }}</a>] {{ end }}</span>
+  <span>{{ range $category, $paper := .Papers.List }}<span class="nowrap">[<a href="#{{ $category }}">{{ $category }}</a>]</span> {{ end }}</span>
 </div>
 <table class='tabs'>
   <tr>
