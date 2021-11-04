@@ -7,7 +7,8 @@
   <span class='papersection' id='{{ $category }}'>{{ $category }}</span>
   </div>
   {{ range $path, $paper := $papers }}
-    <div class="paper">
+  <ul>
+    <li>
     {{ if $paper.Meta.Title }}
     <span class="title"><a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a></span><br>
     {{ else }}
@@ -27,9 +28,10 @@
     {{ else if $paper.Meta.Resource }}{{ if $hasVal }}- {{ end }}<span class="doi"><a href="{{ $paper.Meta.Resource }}">{{ $paper.Meta.Resource }}</a></span>{{ end }}
 
     {{ if $paper.Meta.Journal }}{{ if $hasVal }}- {{ end }}<span class="journal">{{ $paper.Meta.Journal }}</span>{{ end }}
-
-    </div>
+    </li>
+  </ul>
   {{ end }}
+  <hr>
   {{ end }}
 {{ end }}
 </div>
