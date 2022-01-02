@@ -2,255 +2,49 @@
 <html>
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Crane</title>
 <style>
-@media (min-width: 601px) {
-    div#crane {
-        font-size: 16px;
-    }
-}
-@media (max-width: 600px) {
-    div#crane {
-        font-size: 14px;
-    }
-}
+table.head, table.foot { width: 100%; }
+td.head-rtitle, td.foot-os { text-align: right; }
+td.head-vol { text-align: center; }
+div.Pp { margin: 1ex 0ex; }
+div.Nd, div.Bf, div.Op { display: inline; }
+span.Pa, span.Ad { font-style: italic; }
+span.Ms { font-weight: bold; }
+dl.Bl-diag > dt { font-weight: bold; }
+code.Nm, code.Fl, code.Cm, code.Ic, code.In, code.Fd, code.Fn,
+code.Cd { font-weight: bold; font-family: inherit; }
 
-html, body {
-	background: #fbfaf9
-}
+html { font-family: monospace; line-height: 1.25em; }
+body { max-width: 80ch; margin: 1em auto; padding: 0 1ch; }
+table { border-collapse: collapse; }
+table.Nm code.Nm { padding-right: 1ch; }
+table.foot { margin-top: 1em; }
 
-div#crane {
-  font-family: 'Cousine', 'Courier', 'monospace';
-  background: #fff;
-  padding: 1.5em;
-  max-width: 65em;
-  margin: auto;
-  overflow-wrap: break-word;
-  border: 1px solid #eee;
-  box-shadow: 0 0 .5em #999;
-  border-radius: 2px;
-}
+html { background-color: var(--ansi16); color: var(--ansi17); }
+a { color: var(--ansi4); }
+a:visited { color: var(--ansi5); }
+a.permalink { color: var(--ansi3); text-decoration: none; }
 
-div#crane ul {
-  list-style: square;
-  padding-left: 1.5em;
-  padding-right: .5em;
-}
-
-div#crane a {
-  color: #000;
-  text-decoration: none;
-}
-
-div#crane table#header input[type="text"] {
-  font-family: inherit;
-  font-size: 100%;
-  display: block;
-  width: calc(100% - 1rem);
-  border: 1px solid #888;
-  border-color: #888;
-  padding: .375rem;
-  background-color: #fff;
-  background-clip: padding-box;
-  margin-bottom: .5em;
-  line-height: 1.5;
-  transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-}
-
-div#crane .btn {
-  font-family: inherit;
-  font-size: 85%;
-  color: black;
-  text-overflow: unset;
-  display: inline;
-  background: #e9ecef;
-  border: #343a40 1px solid;
-  padding-right: 8px;
-  padding-top: 3px;
-  padding-bottom: 3px;
-  border-radius: 0;
-  display: inline-block;
-}
-
-div#crane .sel {
-  font-family: inherit;
-  font-size: 85%;
-  color: black;
-  text-overflow: unset;
-  display: inline;
-  background: #e9ecef;
-  border: #343a40 1px solid;
-  padding: 2px 8px;
-  border-radius: 0;
-  display: inline-block;
-}
-
-div#crane table {
-  border-collapse: collapse;
-}
-
-div#crane table#header {
-  width: 100%;
-  margin-bottom: 0.5em;
-}
-
-div#crane table#header td.inpt {
-  padding-left: 10px;
-  white-space: nowrap;
-  border-collapse: collapse;
-  color: #000;
-  padding-bottom: 1em;
-}
-
-div#crane table#header td.main {
-  font-size: 250%;
-  padding-left: 10px;
-  white-space: nowrap;
-  border-collapse: collapse;
-}
-
-div#crane table#header td.form {
-  text-align: left;
-  vertical-align: bottom;
-  padding-bottom: 2px;
-  white-space: nowrap;
-}
-
-div#crane table#header td.sub {
-  color: #777;
-  border-top: solid 1px #ccc;
-  padding-left: 10px;
-}
-
-div#crane table.tabs {
-  font-family: sans-serif;
-  font-size: 90%;
-  border-bottom: solid 2px #ccc;
-  border-collapse: nowrap;
-  margin-top: 1em;
-  margin-bottom: 0px;
-  width: 100%;
-}
-
-div#crane table.tabs td {
-  padding: 0px 0px 0px;
-  vertical-align: bottom;
-}
-
-div#crane table.tabs td a {
-  font-size: 90%;
-  padding: 2px 0.75em;
-  color: black;
-  background-color: #ccc;
-}
-
-div#crane table.tabs td.form form {
-  padding-bottom: 2px;
-  white-space: normal;
-  padding-left: 1em;
-}
-
-div#crane div.content {
-  margin-top: 1em;
-}
-
-div#crane div.cat {
-  text-align: left;
-  padding-left: .5em;
-  padding-right: .5em;
-  color: #555;
-  padding-bottom: 0.5em;
-  overflow-wrap: normal;
-  line-height: 1.5em;
-}
-
-div#crane div.cat a {
-  text-decoration: underline;
-}
-
-div#crane div.list {
-  width: 100%;
-  border: none;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-div#crane div.content div.action {
-  padding-top: 1em;
-  padding-bottom: 1em;
-}
-
-div#crane div.list span.authors {
-  font-size: 80%;
-  color: #900;
-}
-
-div#crane div.list span.year {
-  font-size: 80%;
-  color: #090;
-}
-
-div#crane div.list span.doi a {
-  font-size: 80%;
-}
-
-div#crane div.list span.journal {
-  font-size: 80%;
-}
-
-div#crane div.list span {
-  border: none;
-}
-
-div#crane div.list span.title {
-  padding-top: 0.5em;
-}
-
-div#crane div.list span.title a {
-  text-decoration: underline;
-}
-
-div#crane div.list div.papersection {
-  font-weight: bold;
-  padding-top: 0.5em;
-  color: black;
-}
-
-div#crane hr {
-  border: solid 1px #ccc;
-}
-
-div#crane div.footer {
-  margin-top: 0.5em;
-  text-align: center;
-  font-size: 80%;
-}
-
-div#crane div.footer a {
-  color: #ccc;
-  text-decoration: none;
-}
-
-div#crane div.footer a:hover {
-  text-decoration: underline;
-}
-
-div#crane div.cat .nowrap {
-  white-space: nowrap;
-}
+div.paper { padding-bottom: 1em; }
+div.cat-cont { margin-left: 1em; margin-right: 1em; }
+div.cat { justify-content: space-between; display: flex; flex-wrap: wrap; }
+div.action { padding-bottom: 1em; margin-left: 1em; }
+span.doi a { text-decoration: none; }
+span.title a { text-decoration: underline; color: blue; }
+table.head a { text-decoration: none; }
+table.admin { margin-left: 1em; margin-right: 1em; margin-bottom: 1em; }
 </style>
 </head>
 <body>
-<center>
-<div id='crane'>
-<table id='header'>
-  <tr><td class='main'><a href="/">Crane</a></td></tr>
-  <tr><td class='sub'>Research literature download and organization</td></tr>
-</table>
+<div class="manual-text">
+<h1 class="Sh" id="CRANE"><a class="permalink" href="/">CRANE</a></h1>
+<p class="Pp">Crane is a research literature download and categorization
+service. The source code can be downloaded 
+<a href="https://git.jordan.im/crane">here</a>.</p>
 {{ block "content" . }}{{ end }}
-<div class='footer'><a href='https://git.jordan.im/crane'>crane</a></div>
 </div>
-</center>
+<a href='https://git.jordan.im/crane'>crane</a>
 </body>
 </html>

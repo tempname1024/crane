@@ -1,32 +1,40 @@
 {{ template "layout.html" . }}
 {{ define "content" }}
-<p>{{ .Status }}</p>
-<table id='header'>
+<table class="admin" id="header">
+  <tr>
+  <td>
+  {{ if .LastPaperDL }}
+  {{ .Status }} (<a style="text-decoration: underline;" href="/download/{{ .LastPaperDL }}">download</a>)
+  {{ else }}
+  {{ .Status }}
+  {{ end }}
+  </td>
+  </tr>
   <tr>
   {{ $categoryCount := len .Papers.List }}
   {{ if gt $categoryCount 0 }}
-    <td class='inpt'>
+    <td>
       <form method='post' action='/admin/edit/'>
-        <input type="text" id="rename-category" name="rename-to" placeholder="Mathematics">
+        <input type="text" id="rename-category" name="rename-to" placeholder="Mathematics"/>
         <select class="sel" name="rename-category" id="category">
         {{ range $category, $papers := .Papers.List }}
         <option value="{{ $category }}">{{ $category }}</option>
         {{ end }}
         </select>
-        <input class="btn" type="submit" value="Rename Category">
+        <input type="submit" value="Rename Category"/>
       </form>
     </td>
   {{ end }}
   </tr>
 </table>
-<div class="cat">
-  <span>{{ range $category, $paper := .Papers.List }}<span class="nowrap">[<a href="#{{ $category }}">{{ $category }}</a>]</span> {{ end }}</span>
+<div class="cat-cont">
+  <div class="cat">
+    {{ range $category, $paper := .Papers.List }}
+    <span class="cat">[<a href="#{{ $category }}">{{ $category }}</a>]</span>
+    {{ end }}
+  </div>
 </div>
-<table class='tabs'>
-  <tr>
-    <td><a class='active' href='/admin/'>Back</a></td>
-  </tr>
-</table>
+<p class="Pp"><a class='active' href='/admin/'>Back</a></p>
 <div class='content'>
 {{ if gt $categoryCount 0 }}
 <form method='post' action='/admin/edit/'>
@@ -41,43 +49,76 @@
       {{ end }}
     </optgroup>
   </select>
-  <input class="btn" type="submit" value="Save" />
+  <input type="submit" value="Save" />
   </div>
-<div class='papers nowrap list'>
+<div>
 {{ range $category, $papers := .Papers.List }}
   {{ $paperCount := len $papers }}
-  <div class="papersection">
-  <input type="checkbox" id="{{ $category }}" name="category" value="{{ $category }}">
-  <label for="{{ $category }}"><span class='papersection' id='{{ $category }}'>{{ $category }}</span></label>
-  </div>
+  <input type="checkbox" id="{{ $category }}" name="category" value="{{ $category }}"/>
+  <label for="{{ $category }}">
+  <span id='{{ $category }}'>
+  <a class="permalink" href="#{{ $category }}">{{ $category }}</a>
+  </span>
+  </label>
   {{ range $path, $paper := $papers }}
-  <ul>
-    <li>
+  <div class="paper">
     {{ if $paper.Meta.Title }}
-    <span class="title"><input type="checkbox" id="{{ $path }}" name="paper" value="{{ $path }}"> <a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a></input></span><br>
+    <span class="title">
+      <input type="checkbox" id="{{ $path }}" name="paper" value="{{ $path }}"/> 
+      <a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a>
+    </span>
+    <br />
     {{ else }}
-    <span class="title"><input type="checkbox" id="{{ $path }}" name="paper" value="{{ $path }}"><label for="{{ $path }}"> <a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a></label></span><br>
+    <span class="title">
+      <input type="checkbox" id="{{ $path }}" name="paper" value="{{ $path }}"/>
+      <label for="{{ $path }}"> 
+        <a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a>
+      </label>
+    </span>
+    <br />
     {{ end }}
 
     {{ $contCount := len $paper.Meta.Contributors }}{{ if ge $contCount 1 }}
-    <span class="authors">{{ range $index, $contributor := $paper.Meta.Contributors }}{{if $index}}, {{end}}{{ $contributor.FirstName }} {{ $contributor.LastName }}{{end}}</span><br>
+    <span class="authors">
+      {{- range $index, $contributor := $paper.Meta.Contributors -}}
+      {{- if $index }}, {{ end }}
+      {{- $contributor.FirstName }} {{ $contributor.LastName -}}
+      {{- end -}}
+    </span>
+    <br />
     {{ end }}
 
     {{ $hasVal := false }}
-    {{ if $paper.Meta.PubYear }}{{ $hasVal = true }}<span class="year">{{ $paper.Meta.PubYear }}</span>{{ end }}
+    {{ if $paper.Meta.PubYear }}{{ $hasVal = true }}
+    <span class="year">{{ $paper.Meta.PubYear }}</span>
+    {{ end }}
 
-    {{ if $paper.Meta.DOI }}{{ if $hasVal }}- {{end}}<span class="doi"><a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a></span>
+    {{ if $paper.Meta.DOI }}{{ if $hasVal }}- {{end}}
+    <span class="doi">
+      <a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a>
+    </span>
+    {{ else if $paper.Meta.ArxivID }}
+    {{ if $hasVal }}- {{ end }}
+    <span class="doi">
+      <a href="https://arxiv.org/abs/{{ $paper.Meta.ArxivID }}">{{ $paper.Meta.ArxivID }}</a>
+    </span>
+    {{ else if $paper.Meta.Resource }}
+    {{ if $hasVal }}- {{ end }}
+    <span class="doi">
+      <a href="{{ $paper.Meta.Resource }}">{{ $paper.Meta.Resource }}</a>
+    </span>
+    {{ end }}
 
-    {{ else if $paper.Meta.ArxivID }}{{ if $hasVal }}- {{ end }}<span class="doi"><a href="https://arxiv.org/abs/{{ $paper.Meta.ArxivID }}">{{ $paper.Meta.ArxivID }}</span>
-    {{ else if $paper.Meta.Resource }}{{ if $hasVal }}- {{ end }}<span class="doi"><a href="{{ $paper.Meta.Resource }}">{{ $paper.Meta.Resource }}</a></span>{{ end }}
+    {{ if $paper.Meta.Journal }}
+    {{ if $hasVal }}- {{ end }}
+    <span class="journal">{{ $paper.Meta.Journal }}
+    </span>
+    {{ end }}
 
-    {{ if $paper.Meta.Journal }}{{ if $hasVal }}- {{ end }}<span class="journal">{{ $paper.Meta.Journal }}</span>{{ end }}
-
-    </li>
-  </ul>
+  </div>
   {{ end }}
-  <hr>
 {{ end }}
+</div>
 {{ end }}
 </form></div>
 {{ end }}

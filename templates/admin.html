@@ -1,51 +1,55 @@
 {{ template "layout.html" . }}
 {{ define "content" }}
-{{ if .LastPaperDL }}
-<p>{{ .Status }} (<a style="text-decoration: underline;" href="/download/{{ .LastPaperDL }}">download</a>)</p>
-{{ else }}
-<p>{{ .Status }}</p>
-{{ end }}
-<table id='header'>
+<table class="admin">
   <tr>
-    <td class='inpt'>
-      <form method='post' action='/admin/add/'>
-      <input type='text' name='new-category' placeholder="Mathematics" value=''/>
-      <input class='btn' type="submit" value="New Category" />
+  <td>
+  {{ if .LastPaperDL }}
+  {{ .Status }} (<a style="text-decoration: underline;" href="/download/{{ .LastPaperDL }}">download</a>)
+  {{ else }}
+  {{ .Status }}
+  {{ end }}
+  </td>
+  </tr>
+  <tr>
+  <td>
+    <form method='post' action='/admin/add/'>
+    <input type='text' name='new-category' placeholder="Mathematics" value=''/>
+    <input type="submit" value="New Category" />
     </form>
-		</td>
+  </td>
 	</tr>
   {{ $categoryCount := len .Papers.List }}
   {{ if gt $categoryCount 0 }}
 	<tr>
-    <td class='inpt'>
-      <form method='post' action='/admin/add/'>
-        <input type='text' name='dl-paper' placeholder="URL or DOI" value=''/>
-        <select class="sel" name="dl-category" id="category">
-          {{ $lastUsedCategory := .LastUsedCategory }}
-          {{ if $lastUsedCategory }}
-          <option value="{{ .LastUsedCategory }}">{{ $lastUsedCategory }}</option>
-          {{ end }}
-          {{ range $category, $papers := .Papers.List }}
-          {{ if ne $category $lastUsedCategory }}
-          <option value="{{ $category }}">{{ $category }}</option>
-          {{ end }}
-          {{ end }}
-        </select>
-        <input class="btn" type="submit" value="Download" />
-      </form>
-    </td>
+  <td>
+    <form method='post' action='/admin/add/'>
+    <input type='text' name='dl-paper' placeholder="URL or DOI" value=''/>
+    <select class="sel" name="dl-category" id="category">
+    {{ $lastUsedCategory := .LastUsedCategory }}
+    {{ if $lastUsedCategory }}
+      <option value="{{ .LastUsedCategory }}">{{ $lastUsedCategory }}</option>
+    {{ end }}
+    {{ range $category, $papers := .Papers.List }}
+      {{ if ne $category $lastUsedCategory }}
+      <option value="{{ $category }}">{{ $category }}</option>
+      {{ end }}
+    {{ end }}
+    </select>
+    <input type="submit" value="Download" />
+    </form>
+  </td>
   </tr>
   {{ end }}
 </table>
 {{ if gt $categoryCount 0 }}
-<div class="cat">
-  <span>{{ range $category, $paper := .Papers.List }}<span class="nowrap">[<a href="#{{ $category }}">{{ $category }}</a>]</span> {{ end }}</span>
+<div class="cat-cont">
+  <div class="cat">
+    {{ range $category, $paper := .Papers.List }}
+    <span class="cat">[<a href="#{{ $category }}">{{ $category }}</a>]</span>
+    {{ end }}
+  </div>
 </div>
-<table class='tabs'>
-  <tr>
-    <td><a class='active' href='/admin/edit/'>Edit</a></td>
-  </tr>
-</table>
+<p class="Pp"><a class='active' href='/admin/edit/'>Edit</a></p>
 <div class='content'>
 {{ block "list" . }}{{ end }}
 </div>

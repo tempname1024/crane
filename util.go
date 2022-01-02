@@ -99,51 +99,51 @@ func getMetaFromCitation(resp *http.Response) (*Meta, error) {
 				}
 			}
 			switch name {
-				case "citation_title":
-					meta.Title = cont
-				case "citation_author":
-					var c Contributor
-					// Doe, Jain
-					if strings.Contains(cont, ",") {
-						v := strings.Split(cont, ", ")
-						c.FirstName = strings.Join(v[1:], " ")
-						c.LastName = v[0]
+			case "citation_title":
+				meta.Title = cont
+			case "citation_author":
+				var c Contributor
+				// Doe, Jain
+				if strings.Contains(cont, ",") {
+					v := strings.Split(cont, ", ")
+					c.FirstName = strings.Join(v[1:], " ")
+					c.LastName = v[0]
 					// Jain Doe
-					} else {
-						v := strings.Split(cont, " ")
-						c.FirstName = strings.Join(v[:len(v)-1], " ")
-						c.LastName = strings.Join(v[len(v)-1:], " ")
-					}
-					c.Role = "author"
-					if len(meta.Contributors) > 0 {
-						c.Sequence = "additional"
-					} else {
-						c.Sequence = "first"
-					}
-					meta.Contributors = append(meta.Contributors, c)
-				case "citation_date", "citation_publication_date":
-					var formats = []string{"2006-01-02", "2006/01/02", "2006"}
-					for _, format := range formats {
-						t, err := time.Parse(format, cont)
-						if err == nil {
-							meta.PubMonth = t.Month().String()
-							meta.PubYear = strconv.Itoa(t.Year())
-							break
-						}
-					}
-				case "citation_journal_title", "og:site_name", "DC.Publisher":
-					meta.Journal = cont
-				case "citation_firstpage":
-					meta.FirstPage = cont
-				case "citation_lastpage":
-					meta.LastPage = cont
-				case "citation_doi":
-					meta.DOI = cont
-				case "citation_arxiv_id":
-					meta.ArxivID = cont
-				case "citation_pdf_url":
-					meta.Resource = cont
+				} else {
+					v := strings.Split(cont, " ")
+					c.FirstName = strings.Join(v[:len(v)-1], " ")
+					c.LastName = strings.Join(v[len(v)-1:], " ")
 				}
+				c.Role = "author"
+				if len(meta.Contributors) > 0 {
+					c.Sequence = "additional"
+				} else {
+					c.Sequence = "first"
+				}
+				meta.Contributors = append(meta.Contributors, c)
+			case "citation_date", "citation_publication_date":
+				var formats = []string{"2006-01-02", "2006/01/02", "2006"}
+				for _, format := range formats {
+					t, err := time.Parse(format, cont)
+					if err == nil {
+						meta.PubMonth = t.Month().String()
+						meta.PubYear = strconv.Itoa(t.Year())
+						break
+					}
+				}
+			case "citation_journal_title", "og:site_name", "DC.Publisher":
+				meta.Journal = cont
+			case "citation_firstpage":
+				meta.FirstPage = cont
+			case "citation_lastpage":
+				meta.LastPage = cont
+			case "citation_doi":
+				meta.DOI = cont
+			case "citation_arxiv_id":
+				meta.ArxivID = cont
+			case "citation_pdf_url":
+				meta.Resource = cont
+			}
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			f(c)

@@ -1,37 +1,66 @@
 {{ define "list" }}
-<div class='papers nowrap list'>
+<div>
 {{ range $category, $papers := .Papers.List }}
   {{ $paperCount := len $papers }}
   {{ if ge $paperCount 1 }}
-  <div class="papersection">
-  <span class='papersection' id='{{ $category }}'>{{ $category }}</span>
-  </div>
+  <h1 id="{{ $category }}">
+    <a class="permalink" href="#{{ $category }}">{{ $category }}</a>
+  </h1>
   {{ range $path, $paper := $papers }}
-  <ul>
-    <li>
+    <div class="paper">
     {{ if $paper.Meta.Title }}
-    <span class="title"><a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a></span><br>
+    <span class="title">
+      <a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a>
+    </span>
+    <br />
     {{ else }}
-    <span class="title"><a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a></span><br>
+    <span class="title">
+      <a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a>
+    </span>
+    <br />
     {{ end }}
 
-    {{ $contCount := len $paper.Meta.Contributors }}{{ if ge $contCount 1 }}
-    <span class="authors">{{ range $index, $contributor := $paper.Meta.Contributors }}{{if $index}}, {{end}}{{ $contributor.FirstName }} {{ $contributor.LastName }}{{end}}</span><br>
+    {{ $contCount := len $paper.Meta.Contributors }}
+    {{ if ge $contCount 1 }}
+    <span class="authors">
+      {{- range $index, $contributor := $paper.Meta.Contributors -}}
+      {{- if $index }}, {{ end -}}
+      {{- $contributor.FirstName }} {{ $contributor.LastName -}}
+      {{- end -}}
+    </span>
+    <br />
     {{ end }}
 
     {{ $hasVal := false }}
-    {{ if $paper.Meta.PubYear }}{{ $hasVal = true }}<span class="year">{{ $paper.Meta.PubYear }}</span>{{ end }}
+    {{ if $paper.Meta.PubYear }}
+    {{ $hasVal = true }}
+    <span class="year">{{ $paper.Meta.PubYear }}</span>
+    {{ end }}
 
-    {{ if $paper.Meta.DOI }}{{ if $hasVal }}- {{end}}<span class="doi"><a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a></span>
+    {{ if $paper.Meta.DOI }}
+    {{ if $hasVal }}- {{end}}
+    <span class="doi">
+      <a href="https://doi.org/{{ $paper.Meta.DOI }}">{{ $paper.Meta.DOI }}</a>
+    </span>
 
-    {{ else if $paper.Meta.ArxivID }}{{ if $hasVal }}- {{ end }}<span class="doi"><a href="https://arxiv.org/abs/{{ $paper.Meta.ArxivID }}">{{ $paper.Meta.ArxivID }}</a></span>
-    {{ else if $paper.Meta.Resource }}{{ if $hasVal }}- {{ end }}<span class="doi"><a href="{{ $paper.Meta.Resource }}">{{ $paper.Meta.Resource }}</a></span>{{ end }}
+    {{ else if $paper.Meta.ArxivID }}
+    {{ if $hasVal }}- {{ end }}
+    <span class="doi">
+      <a href="https://arxiv.org/abs/{{ $paper.Meta.ArxivID }}">{{ $paper.Meta.ArxivID }}</a>
+    </span>
+    {{ else if $paper.Meta.Resource }}
+    {{ if $hasVal }}- {{ end }}
+    <span class="doi">
+      <a href="{{ $paper.Meta.Resource }}">{{ $paper.Meta.Resource }}</a>
+    </span>
+    {{ end }}
 
-    {{ if $paper.Meta.Journal }}{{ if $hasVal }}- {{ end }}<span class="journal">{{ $paper.Meta.Journal }}</span>{{ end }}
-    </li>
-  </ul>
+    {{ if $paper.Meta.Journal }}
+    {{ if $hasVal }}- {{ end }}
+    <span class="journal">{{ $paper.Meta.Journal }}</span>
+    {{ end }}
+    </div>
   {{ end }}
-  <hr>
   {{ end }}
 {{ end }}
 </div>

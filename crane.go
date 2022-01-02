@@ -36,7 +36,6 @@ var (
 	user        string
 	pass        string
 	buildPrefix string
-	templateDir string
 )
 
 type Contributor struct {
@@ -637,18 +636,6 @@ func main() {
 	}
 	if net.ParseIP(host) == nil {
 		panic(errors.New("Host flag could not be parsed; is it an IP address?"))
-	}
-
-	// prefer system-installed template assets over project-local paths
-	if _, err := os.Stat(filepath.Join(buildPrefix,
-		"/share/crane/templates")); err != nil {
-		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-		if err != nil {
-			log.Fatal(err)
-		}
-		templateDir = filepath.Join(dir, "templates")
-	} else {
-		templateDir = filepath.Join(buildPrefix, "/share/crane/templates")
 	}
 
 	http.HandleFunc("/", papers.IndexHandler)

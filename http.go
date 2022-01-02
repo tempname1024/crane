@@ -2,50 +2,74 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"html/template"
+	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
+var templateDir = getTemplateDir()
+
+var indexTemp = template.Must(template.ParseFiles(
+	filepath.Join(templateDir, "layout.html"),
+	filepath.Join(templateDir, "index.html"),
+	filepath.Join(templateDir, "list.html"),
+))
+var adminTemp = template.Must(template.ParseFiles(
+	filepath.Join(templateDir, "admin.html"),
+	filepath.Join(templateDir, "layout.html"),
+	filepath.Join(templateDir, "list.html"),
+))
+var editTemp = template.Must(template.ParseFiles(
+	filepath.Join(templateDir, "admin-edit.html"),
+	filepath.Join(templateDir, "layout.html"),
+	filepath.Join(templateDir, "list.html"),
+))
+
+func cat(cat string) string {
+
+	return strings.Replace(cat, "-", "&#8209;", -1)
+}
+
+// getTemplateDir returns the absolute path of the templates directory,
+// preferring system-installed assets over the project-local path
+func getTemplateDir() string {
+
+	if _, err := os.Stat(filepath.Join(buildPrefix,
+		"/share/crane/templates")); err != nil {
+		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+		if err != nil {
+			log.Fatal(err)
+		}
+		return filepath.Join(dir, "templates")
+	} else {
+		return filepath.Join(buildPrefix, "/share/crane/templates")
+	}
+}
+
 // IndexHandler renders the index of papers stored in papers.Path
 func (papers *Papers) IndexHandler(w http.ResponseWriter, r *http.Request) {
+
 	// catch-all for paths unhandled by direct http.HandleFunc calls
 	if r.URL.Path != "/" {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
-	t, _ := template.ParseFiles(filepath.Join(templateDir, "layout.html"),
-		filepath.Join(templateDir, "index.html"),
-		filepath.Join(templateDir, "list.html"),
-	)
-	papers.RLock()
-	res := Resp{
-		Papers: *papers,
-	}
-	papers.RUnlock()
-
-	t.Execute(w, &res)
+	res := Resp{Papers: *papers}
+	indexTemp.Execute(w, &res)
 }
 
 // AdminHandler renders the index of papers stored in papers.Path with
 // additional forms to modify the collection (add, delete, rename...)
 func (papers *Papers) AdminHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles(filepath.Join(templateDir, "admin.html"),
-		filepath.Join(templateDir, "layout.html"),
-		filepath.Join(templateDir, "list.html"),
-	)
-	papers.RLock()
-	res := Resp{
-		Papers: *papers,
-	}
-	papers.RUnlock()
 
+	res := Resp{Papers: *papers}
 	if user != "" && pass != "" {
 		username, password, ok := r.BasicAuth()
 		if ok && user == username && pass == password {
-			t.Execute(w, &res)
+			adminTemp.Execute(w, &res)
 		} else {
 			w.Header().Add("WWW-Authenticate",
 				`Basic realm="Please authenticate"`)
@@ -53,23 +77,15 @@ func (papers *Papers) AdminHandler(w http.ResponseWriter, r *http.Request) {
 				http.StatusUnauthorized)
 		}
 	} else {
-		t.Execute(w, &res)
+		adminTemp.Execute(w, &res)
 	}
 }
 
 // EditHandler renders the index of papers stored in papers.Path, prefixing
 // a checkbox to each unique paper and category for modification
 func (papers *Papers) EditHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles(filepath.Join(templateDir, "admin-edit.html"),
-		filepath.Join(templateDir, "layout.html"),
-		filepath.Join(templateDir, "list.html"),
-	)
-	papers.RLock()
-	res := Resp{
-		Papers: *papers,
-	}
-	papers.RUnlock()
 
+	res := Resp{Papers: *papers}
 	if user != "" && pass != "" {
 		username, password, ok := r.BasicAuth()
 		if !ok || user != username || pass != password {
@@ -82,10 +98,9 @@ func (papers *Papers) EditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := r.ParseForm(); err != nil {
 		res.Status = err.Error()
-		t.Execute(w, &res)
+		editTemp.Execute(w, &res)
 		return
 	}
-
 	if action := r.FormValue("action"); action == "delete" {
 		for _, paper := range r.Form["paper"] {
 			if res.Status != "" {
@@ -135,15 +150,12 @@ func (papers *Papers) EditHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	t.Execute(w, &res)
+	editTemp.Execute(w, &res)
 }
 
 // AddHandler provides support for new paper processing and category addition
 func (papers *Papers) AddHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles(filepath.Join(templateDir, "admin.html"),
-		filepath.Join(templateDir, "layout.html"),
-		filepath.Join(templateDir, "list.html"),
-	)
+
 	if user != "" && pass != "" {
 		username, password, ok := r.BasicAuth()
 		if !ok || user != username || pass != password {
@@ -161,7 +173,6 @@ func (papers *Papers) AddHandler(w http.ResponseWriter, r *http.Request) {
 	// sanitize input; we use the category to build the path used to save
 	// papers
 	nc = strings.Trim(strings.Replace(nc, "..", "", -1), "/.")
-
 	res := Resp{}
 
 	// paper download, both required fields populated
@@ -204,15 +215,13 @@ func (papers *Papers) AddHandler(w http.ResponseWriter, r *http.Request) {
 			res.Status = fmt.Sprintf("category %q added successfully", nc)
 		}
 	}
-	papers.RLock()
 	res.Papers = *papers
-	papers.RUnlock()
-
-	t.Execute(w, &res)
+	adminTemp.Execute(w, &res)
 }
 
 // DownloadHandler serves saved papers up for download
 func (papers *Papers) DownloadHandler(w http.ResponseWriter, r *http.Request) {
+
 	paper := strings.TrimPrefix(r.URL.Path, "/download/")
 	category := filepath.Dir(paper)
 
@@ -241,4 +250,3 @@ func (papers *Papers) DownloadHandler(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, papers.List[category][paper].PaperPath)
 	}
 }
-
