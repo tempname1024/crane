@@ -3,9 +3,9 @@
 {{ range $category, $papers := .Papers.List }}
   {{ $paperCount := len $papers }}
   {{ if ge $paperCount 1 }}
-  <h1 id="{{ $category }}">
+  <h2 id="{{ $category }}">
     <a class="permalink" href="#{{ $category }}">{{ $category }}</a>
-  </h1>
+  </h2>
   {{ range $path, $paper := $papers }}
     <div class="paper">
     {{ if $paper.Meta.Title }}
