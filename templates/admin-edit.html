@@ -65,7 +65,8 @@
     {{ if $paper.Meta.Title }}
     <span class="title">
       <input type="checkbox" id="{{ $path }}" name="paper" value="{{ $path }}"/> 
-      <a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a>
+      <a href='/download/{{ $path }}' title='{{ normalizeStr $paper.Meta.Title }}'>
+        {{- normalizeStr $paper.Meta.Title }}</a>
     </span>
     <br />
     {{ else }}

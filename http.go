@@ -12,25 +12,32 @@ import (
 
 var templateDir = getTemplateDir()
 
-var indexTemp = template.Must(template.ParseFiles(
+var funcMap = template.FuncMap{
+	"normalizeStr": normalizeStr,
+}
+
+var indexTemp = template.Must(template.New("index.html").Funcs(funcMap).ParseFiles(
 	filepath.Join(templateDir, "layout.html"),
 	filepath.Join(templateDir, "index.html"),
 	filepath.Join(templateDir, "list.html"),
 ))
-var adminTemp = template.Must(template.ParseFiles(
+
+var adminTemp = template.Must(template.New("admin.html").Funcs(funcMap).ParseFiles(
 	filepath.Join(templateDir, "admin.html"),
 	filepath.Join(templateDir, "layout.html"),
 	filepath.Join(templateDir, "list.html"),
 ))
-var editTemp = template.Must(template.ParseFiles(
+
+var editTemp = template.Must(template.New("admin-edit.html").Funcs(funcMap).ParseFiles(
 	filepath.Join(templateDir, "admin-edit.html"),
 	filepath.Join(templateDir, "layout.html"),
 	filepath.Join(templateDir, "list.html"),
 ))
 
-func cat(cat string) string {
+func normalizeStr(s string) string {
 
-	return strings.Replace(cat, "-", "&#8209;", -1)
+	trim := strings.TrimPrefix(strings.TrimSuffix(s, "\n"), "\n")
+	return strings.Join(strings.Fields(trim), " ")
 }
 
 // getTemplateDir returns the absolute path of the templates directory,
@@ -58,7 +65,10 @@ func (papers *Papers) IndexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res := Resp{Papers: *papers}
-	indexTemp.Execute(w, &res)
+	err := indexTemp.Execute(w, &res)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // AdminHandler renders the index of papers stored in papers.Path with

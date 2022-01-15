@@ -10,12 +10,14 @@
     <div class="paper">
     {{ if $paper.Meta.Title }}
     <span class="title">
-      <a href='/download/{{ $path }}' title='{{ $paper.Meta.Title }}'>{{ $paper.Meta.Title }}</a>
+      <a href='/download/{{ $path }}' title='{{ normalizeStr $paper.Meta.Title }}'>
+        {{- normalizeStr $paper.Meta.Title }}</a>
     </span>
     <br />
     {{ else }}
     <span class="title">
-      <a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>{{ $paper.PaperName }}</a>
+      <a href='/download/{{ $path }}' title='{{ $paper.PaperName }}'>
+        {{- $paper.PaperName }}</a>
     </span>
     <br />
     {{ end }}
@@ -46,7 +48,8 @@
     {{ else if $paper.Meta.ArxivID }}
     {{ if $hasVal }}- {{ end }}
     <span class="doi">
-      <a href="https://arxiv.org/abs/{{ $paper.Meta.ArxivID }}">{{ $paper.Meta.ArxivID }}</a>
+      <a href="https://arxiv.org/abs/{{ $paper.Meta.ArxivID }}">
+        {{- $paper.Meta.ArxivID }}</a>
     </span>
     {{ else if $paper.Meta.Resource }}
     {{ if $hasVal }}- {{ end }}
