@@ -327,10 +327,6 @@ func (papers *Papers) NewPaperFromDirectLink(resp *http.Response, meta *Meta,
 		paper.PaperName = papers.getUniqueName(category,
 			getPaperFileNameFromResp(resp))
 	}
-
-	if err != nil {
-		return &Paper{}, err
-	}
 	paper.PaperPath = filepath.Join(papers.Path,
 		filepath.Join(category, paper.PaperName+".pdf"))
 
