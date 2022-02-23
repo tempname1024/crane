@@ -280,8 +280,10 @@ func getPaper(client *http.Client, u string) (string, error) {
 					if err != nil {
 						continue
 					}
-					_u.Path = _v.Path
-					dl = _u
+					if strings.HasSuffix(_v.Path, "pdf") {
+						_u.Path = _v.Path
+						dl = _u
+					}
 				}
 			}
 		}
@@ -298,6 +300,10 @@ func getPaper(client *http.Client, u string) (string, error) {
 	resp, err = makeRequest(client, dl.String())
 	if err != nil {
 		return "", err
+	}
+
+	if resp.Header.Get("content-type") != "application/pdf" {
+		return "", fmt.Errorf("%q: parsed PDF direct link not application/pdf", u)
 	}
 
 	tmpPDF, err := ioutil.TempFile("", "tmp-*.pdf")
