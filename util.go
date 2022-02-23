@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -24,6 +25,7 @@ var privateIPBlocks []*net.IPNet
 //
 // credit: https://stackoverflow.com/a/50825191
 func isPrivateIP(ip net.IP) bool {
+
 	if privateIPBlocks == nil {
 		for _, cidr := range []string{
 			"127.0.0.0/8",    // IPv4 loopback
@@ -55,6 +57,7 @@ func isPrivateIP(ip net.IP) bool {
 
 // getDOIFromBytes returns the DOI parsed from the provided []byte slice
 func getDOIFromBytes(b []byte) []byte {
+
 	re := regexp.MustCompile(`(10[.][0-9]{4,}[^\s"/<>]*/[^\s"'<>,\{\};\[\]\?&]+)`)
 	return re.Find(b)
 }
@@ -62,6 +65,7 @@ func getDOIFromBytes(b []byte) []byte {
 // makeRequest makes a request to a remote resource using the provided
 // *http.Client and returns its *http.Response
 func makeRequest(client *http.Client, u string) (*http.Response, error) {
+
 	req, err := http.NewRequest("GET", u, nil)
 
 	// sciencedirect and company block atypical user agents
@@ -80,6 +84,7 @@ func makeRequest(client *http.Client, u string) (*http.Response, error) {
 // getMetaFromCitation parses an *http.Response for <meta> tags to populate a
 // paper's Meta attributes and returns the paper
 func getMetaFromCitation(resp *http.Response) (*Meta, error) {
+
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
 		return nil, err
@@ -156,6 +161,7 @@ func getMetaFromCitation(resp *http.Response) (*Meta, error) {
 // renameFile is an alternative to os.Rename which supports moving files
 // between devices where os.Rename would return an error (cross-device link)
 func renameFile(src string, dst string) (err error) {
+
 	if src == dst {
 		return nil
 	}
@@ -174,6 +180,7 @@ func renameFile(src string, dst string) (err error) {
 //
 // credit: https://gist.github.com/r0l1/92462b38df26839a3ca324697c8cba04
 func copyFile(src, dst string) (err error) {
+
 	in, err := os.Open(src)
 	if err != nil {
 		return
@@ -214,6 +221,7 @@ func copyFile(src, dst string) (err error) {
 
 // getMetaFromDOI saves doi.org API data to TempFile and returns its path
 func getMetaFromDOI(client *http.Client, doi []byte) (*Meta, error) {
+
 	u := "https://doi.org/" + string(doi)
 	req, err := http.NewRequest("GET", u, nil)
 
@@ -247,22 +255,51 @@ func getMetaFromDOI(client *http.Client, doi []byte) (*Meta, error) {
 // response body to a temporary file, returning its path, provided the response
 // has the content-type application/pdf
 func getPaper(client *http.Client, u string) (string, error) {
-	req, err := http.NewRequest("GET", u, nil)
 
-	// sci-hub gives us the paper directly (no iframe) if we're on mobile
-	req.Header.Add("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 13_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.2 Mobile/15E148 Safari/604.1")
-
-	resp, err := client.Do(req)
+	resp, err := makeRequest(client, u)
 	if err != nil {
 		return "", err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%q: status code not OK", u)
+	doc, err := html.Parse(resp.Body)
+	if err != nil {
+		return "", err
 	}
-	if resp.Header.Get("Content-Type") != "application/pdf" {
-		return "", fmt.Errorf("%q: content-type not application/pdf", u)
+
+	var dl *url.URL
+	var f func(*html.Node)
+	f = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "embed" {
+			for _, a := range n.Attr {
+				if a.Key == "src" {
+					_u, err := url.Parse(u)
+					if err != nil {
+						continue
+					}
+					_v, err := url.Parse(a.Val)
+					if err != nil {
+						continue
+					}
+					_u.Path = _v.Path
+					dl = _u
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
+		}
 	}
+	f(doc)
+
+	if dl.String() == "" {
+		return "", fmt.Errorf("%q: could not locate PDF direct link", u)
+	}
+
+	resp, err = makeRequest(client, dl.String())
+	if err != nil {
+		return "", err
+	}
+
 	tmpPDF, err := ioutil.TempFile("", "tmp-*.pdf")
 	if err != nil {
 		return "", err
@@ -280,6 +317,7 @@ func getPaper(client *http.Client, u string) (string, error) {
 
 // saveRespBody writes the provided http.Response to path
 func saveRespBody(resp *http.Response, path string) error {
+
 	out, err := os.Create(path)
 	if err != nil {
 		return err
