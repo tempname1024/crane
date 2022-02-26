@@ -293,7 +293,7 @@ func getPaper(client *http.Client, u string) (string, error) {
 	}
 	f(doc)
 
-	if dl.String() == "" {
+	if dl == nil || dl.String() == "" {
 		return "", fmt.Errorf("%q: could not locate PDF direct link", u)
 	}
 
