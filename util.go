@@ -269,20 +269,17 @@ func getPaper(client *http.Client, u string) (string, error) {
 	var dl *url.URL
 	var f func(*html.Node)
 	f = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "embed" {
+		if n.Type == html.ElementNode {
 			for _, a := range n.Attr {
 				if a.Key == "src" {
-					_u, err := url.Parse(u)
-					if err != nil {
-						continue
-					}
 					_v, err := url.Parse(a.Val)
 					if err != nil {
 						continue
 					}
+					fmt.Println(_v.Path)
 					if strings.HasSuffix(_v.Path, "pdf") {
-						_u.Path = _v.Path
-						dl = _u
+						dl = _v
+						break
 					}
 				}
 			}
