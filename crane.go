@@ -30,7 +30,7 @@ const (
 
 var (
 	client      *http.Client
-	scihubURL   string
+	scihubURL   *url.URL
 	host        string
 	port        uint64
 	user        string
@@ -244,8 +244,9 @@ func (papers *Papers) NewPaperFromDOI(doi []byte, category string) (*Paper,
 	tmpXML.Close()
 
 	name := getPaperFileNameFromMeta(meta) // doe2020
+
+	// last-resort if metadata lacking author or publication year
 	if name == "" {
-		// last-resort condition if metadata lacking author or publication year
 		name = strings.Replace(string(doi), "..", "", -1)
 		name = strings.Replace(string(doi), "/", "", -1)
 	}
@@ -253,7 +254,7 @@ func (papers *Papers) NewPaperFromDOI(doi []byte, category string) (*Paper,
 	// doe2020-(2, 3, 4...) if n already exists in set
 	uniqueName := papers.getUniqueName(category, name)
 
-	// if not matching, check if DOIs match (genuine duplicate)
+	// check if DOIs match (genuine duplicate)
 	if name != uniqueName {
 		key := filepath.Join(category, name+".pdf")
 		papers.RLock()
@@ -271,16 +272,13 @@ func (papers *Papers) NewPaperFromDOI(doi []byte, category string) (*Paper,
 		paper.PaperName+".meta.xml")
 
 	// make outbound request to sci-hub, save paper to temporary location
-	url := scihubURL + string(doi)
-	tmpPDF, err := getPaper(client, url)
+	tmpPDF, err := getPaper(client, scihubURL, string(doi))
 	defer os.Remove(tmpPDF)
 	if err != nil {
 		// try passing resource URL (from doi.org metadata) to sci-hub instead
 		// (force cache)
 		if meta.Resource != "" {
-			url = scihubURL + meta.Resource
-			tmpPDF, err = getPaper(client, url)
-			if err != nil {
+			if tmpPDF, err = getPaper(client, scihubURL, meta.Resource); err != nil {
 				return nil, err
 			}
 		} else {
@@ -610,7 +608,9 @@ func main() {
 	var papers Papers
 	papers.List = make(map[string]map[string]*Paper)
 
-	flag.StringVar(&scihubURL, "sci-hub", "https://sci-hub.se/", "Sci-Hub URL")
+	var scihub string
+
+	flag.StringVar(&scihub, "sci-hub", "https://sci-hub.se/", "Sci-Hub URL")
 	flag.StringVar(&papers.Path, "path", "./papers",
 		"Absolute or relative path to papers folder")
 	flag.StringVar(&host, "host", "127.0.0.1", "IP address to listen on")
@@ -621,8 +621,9 @@ func main() {
 
 	papers.Path, _ = filepath.Abs(papers.Path)
 
-	if !strings.HasSuffix(scihubURL, "/") {
-		scihubURL = scihubURL + "/"
+	scihubURL, err = url.Parse(scihub)
+	if err != nil {
+		panic(err)
 	}
 	if _, err := os.Stat(papers.Path); os.IsNotExist(err) {
 		os.Mkdir(papers.Path, os.ModePerm)

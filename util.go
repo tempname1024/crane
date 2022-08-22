@@ -240,6 +240,7 @@ func getMetaFromDOI(client *http.Client, doi []byte) (*Meta, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	r := bufio.NewReader(resp.Body)
 	d := xml.NewDecoder(r)
 
@@ -254,19 +255,24 @@ func getMetaFromDOI(client *http.Client, doi []byte) (*Meta, error) {
 // getPaper saves makes an outbound request to a remote resource and saves the
 // response body to a temporary file, returning its path, provided the response
 // has the content-type application/pdf
-func getPaper(client *http.Client, u string) (string, error) {
+func getPaper(client *http.Client, scihub *url.URL, resource string) (string, error) {
 
-	resp, err := makeRequest(client, u)
+	ref, err := url.Parse(resource)
 	if err != nil {
 		return "", err
 	}
+	refURL := scihub.ResolveReference(ref) // scihub + resource
 
+	resp, err := makeRequest(client, refURL.String())
+	if err != nil {
+		return "", err
+	}
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	var dl *url.URL
+	var directLink *url.URL
 	var f func(*html.Node)
 	f = func(n *html.Node) {
 		if n.Type == html.ElementNode {
@@ -276,9 +282,8 @@ func getPaper(client *http.Client, u string) (string, error) {
 					if err != nil {
 						continue
 					}
-					fmt.Println(_v.Path)
 					if strings.HasSuffix(_v.Path, "pdf") {
-						dl = _v
+						directLink = scihub.ResolveReference(_v)
 						break
 					}
 				}
@@ -290,25 +295,22 @@ func getPaper(client *http.Client, u string) (string, error) {
 	}
 	f(doc)
 
-	if dl == nil || dl.String() == "" {
-		return "", fmt.Errorf("%q: could not locate PDF direct link", u)
+	if directLink == nil || directLink.String() == "" {
+		return "", fmt.Errorf("%q: could not locate PDF link", refURL.String())
 	}
 
-	resp, err = makeRequest(client, dl.String())
+	resp, err = makeRequest(client, directLink.String())
 	if err != nil {
 		return "", err
 	}
-
 	if resp.Header.Get("content-type") != "application/pdf" {
-		return "", fmt.Errorf("%q: parsed PDF direct link not application/pdf", u)
+		return "", fmt.Errorf("%q: content-type not application/pdf", refURL.String())
 	}
 
 	tmpPDF, err := ioutil.TempFile("", "tmp-*.pdf")
 	if err != nil {
 		return "", err
 	}
-
-	// write resp.Body (paper data) to tmpPDF
 	if err := saveRespBody(resp, tmpPDF.Name()); err != nil {
 		return "", err
 	}
