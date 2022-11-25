@@ -610,7 +610,7 @@ func main() {
 
 	var scihub string
 
-	flag.StringVar(&scihub, "sci-hub", "https://sci-hub.se/", "Sci-Hub URL")
+	flag.StringVar(&scihub, "sci-hub", "https://sci-hub.hkvisa.net/", "Sci-Hub URL")
 	flag.StringVar(&papers.Path, "path", "./papers",
 		"Absolute or relative path to papers folder")
 	flag.StringVar(&host, "host", "127.0.0.1", "IP address to listen on")

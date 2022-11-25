@@ -33,7 +33,7 @@ Usage of ./crane:
   -path string
         Absolute or relative path to papers folder (default "./papers")
   -sci-hub string
-        Sci-Hub URL (default "https://sci-hub.se/")
+        Sci-Hub URL (default "https://sci-hub.hkvisa.net/")
   -user string
         Username for /admin/ endpoints (optional)
   -pass string

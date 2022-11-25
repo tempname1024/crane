@@ -230,6 +230,7 @@ func getMetaFromDOI(client *http.Client, doi []byte) (*Meta, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%q: failed to get metadata", u)
@@ -267,6 +268,8 @@ func getPaper(client *http.Client, scihub *url.URL, resource string) (string, er
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
+
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
 		return "", err
@@ -303,6 +306,7 @@ func getPaper(client *http.Client, scihub *url.URL, resource string) (string, er
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 	if resp.Header.Get("content-type") != "application/pdf" {
 		return "", fmt.Errorf("%q: content-type not application/pdf", refURL.String())
 	}
