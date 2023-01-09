@@ -206,16 +206,6 @@ func copyFile(src, dst string) (err error) {
 	if err != nil {
 		return
 	}
-
-	si, err := os.Stat(src)
-	if err != nil {
-		return
-	}
-	err = os.Chmod(dst, si.Mode())
-	if err != nil {
-		return
-	}
-
 	return
 }
 
