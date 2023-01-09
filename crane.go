@@ -145,7 +145,9 @@ func (papers *Papers) getUniqueName(category string, name string) string {
 func (papers *Papers) findPapersWalk(path string, info os.FileInfo,
 	err error) error {
 	// skip the papers.Path root directory
-	if p, _ := filepath.Abs(path); p == papers.Path {
+	if p, _ := filepath.Abs(path); p == papers.Path ||
+		strings.HasPrefix(filepath.Base(path), ".") {
+
 		return nil
 	}
 
